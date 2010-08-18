@@ -50,7 +50,7 @@ autom4te.cache/*
 Makefile
 libtool
 stamp-h1
-qmatswig_wrap.cxx
+qmat_wrap.cxx
 qmat.py
 
 .libs/
