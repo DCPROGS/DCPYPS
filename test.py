@@ -1,5 +1,6 @@
 import numpy as np
 import qmat
+import qmatpy
 import time
 import sys
 
@@ -65,10 +66,10 @@ if __name__ == "__main__":
     # Pure Python
     time0 = time.time()
 
-    p_inf0_py = p_inf(Q_10)
-    p_inf1_py = p_inf(Q_100)
-    lambda_py, A_py = mat_solve(Q_100)
-    y_py = p(t, p_inf0_py, p_inf1_py, lambda_py, A_py)
+    p_inf0_py = qmatpy.p_inf(Q_10)
+    p_inf1_py = qmatpy.p_inf(Q_100)
+    lambda_py, A_py = qmatpy.mat_solve(Q_100)
+    y_py = qmatpy.p(t, p_inf0_py, p_inf1_py, lambda_py, A_py)
 
     print "Python implementation took",
     print np.round((time.time()-time0)*1e3, 3), "ms"
