@@ -26,15 +26,31 @@ def getGs(Q, kA, kB, debug=False):
     if debug: print 'GBA= ', GBA
     return GAB, GBA
 
-def getEigs(Q, k, debug=False):
-    """Calculate eigenvalues, eigenvectors and spectral matrices.
+def getEigs(Q, k=None, debug=False):
+    """
+    Calculate eigenvalues, eigenvectors and spectral matrices.
     Return eigenvalues and spectral matrices.
+    
+    Parameters
+    ----------
+    Q : array_like, shape (k, k)
+    k : {non-zero int, None}
+        size of `Q`
+
+    Returns
+    -------
+    eigvals : ndarray, shape (k,)
+    A : list of ndarrays with shape (k, k); length `k`
+        Spectral matrices of Q.
     """
 
     eigvals, M = nplin.eig(Q)
     if debug: print 'eigenvalues=', eigvals
     if debug: print 'eigenvectors=', M
     N = nplin.inv(M)
+
+    if k is None or k<0 or k>N.shape[0]:
+        k = N.shape[0]
 
     A = []
     for i in range(0, k):
