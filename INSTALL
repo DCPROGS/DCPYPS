@@ -1,0 +1,8 @@
+Installation Instructions
+*************************
+
+$ python setup.py install
+
+or 
+
+$ sudo python setup.py install
