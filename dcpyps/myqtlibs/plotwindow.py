@@ -17,7 +17,7 @@ class MatPlotWin(FigureCanvas):
         self.axes = self.fig.add_subplot(111)
         self.axes.autoscale_view(True,True,True)
         self.fontsize = fsize
-        for loc, spine in self.axes.spines.iteritems():
+        for loc, spine in self.axes.spines.items():
             if loc in ['right','top']:
                 spine.set_color('none') # don't draw spine
         self.axes.xaxis.set_ticks_position('bottom')

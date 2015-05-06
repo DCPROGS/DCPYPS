@@ -4,8 +4,8 @@ import numpy as np
 from scipy.optimize import minimize
 from pylab import*
 try:
-    from PySide.QtGui import *
-    from PySide.QtCore import *
+    from PyQt4.QtGui import *
+    from PyQt4.QtCore import *
 except:
     raise ImportError("pyqt module is missing")
 

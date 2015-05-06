@@ -6,9 +6,9 @@ import platform
 import numpy as np
 from pylab import figure, semilogx, savefig, hist, xlim, ylim, scatter
 from pylab import plot, text, title, xlabel, ylabel
-from dcpyps import scplotlib as scpl
+#from dcpyps import scplotlib as scpl
 from dcpyps import dcio
-from dcpyps import scalcslib as scl
+#from dcpyps import scalcslib as scl
 
 class FitReportHTML():
     """
@@ -108,14 +108,14 @@ class FitReportHTML():
                 "<img src={0} width='450' height='300'>".
                 format(os.path.abspath(sh_filename)))
                 
-            try:
-                mec.set_eff('c', recs[i].conc)
-                text = scl.printout_occupancies(mec, recs[i].tres).replace('\n', '<br>').replace('\t', '&emsp;')
-                self.f.write(text)
-                text = scl.printout_distributions(mec, recs[i].tres).replace('\n', '<br>').replace('\t', '&emsp;')
-                self.f.write(text)
-            except:
-                sys.stderr.write("main: Warning: unable to prepare printout.")
+#            try:
+#                mec.set_eff('c', recs[i].conc)
+#                text = scl.printout_occupancies(mec, recs[i].tres).replace('\n', '<br>').replace('\t', '&emsp;')
+#                self.f.write(text)
+#                text = scl.printout_distributions(mec, recs[i].tres).replace('\n', '<br>').replace('\t', '&emsp;')
+#                self.f.write(text)
+#            except:
+#                sys.stderr.write("main: Warning: unable to prepare printout.")
 
     def finalise(self):
         self.f.write('</html>')
@@ -248,15 +248,15 @@ class ClusterReportHTML():
         savefig(filepath, bbox_inches=0)
         self.f.write("<img src={0} width='450' height='300'>".format(filepath))
 
-    def insert_pdf(self, X, type, xtitle=''):
-        figure(figsize=(6, 4))
-        x1, y1, dx = scpl.prepare_hist(X, 0.01)
-        semilogx(x1, y1, 'k-')
-        filepath = os.path.join(self.fname + '_' + type + '.png')
-        title(filepath)
-        xlabel(xtitle)
-        savefig(filepath, bbox_inches=0)
-        self.f.write("<img src={0} width='450' height='300'>".format(filepath))
+#    def insert_pdf(self, X, type, xtitle=''):
+#        figure(figsize=(6, 4))
+#        x1, y1, dx = scpl.prepare_hist(X, 0.01)
+#        semilogx(x1, y1, 'k-')
+#        filepath = os.path.join(self.fname + '_' + type + '.png')
+#        title(filepath)
+#        xlabel(xtitle)
+#        savefig(filepath, bbox_inches=0)
+#        self.f.write("<img src={0} width='450' height='300'>".format(filepath))
 
     def finalise(self):
         self.f.write('</html>')

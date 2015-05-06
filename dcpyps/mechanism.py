@@ -18,7 +18,7 @@ import sys
 
 import numpy as np
 
-import qmatlib as qml
+#import qmatlib as qml
 
 def identity(rate, effdict):
     """
@@ -59,7 +59,7 @@ def multiply(rate, effdict):
         Product of rate[0] and value.
     """
     
-    return rate[0]*effdict.values()[0]
+    return rate[0] * list(effdict.values())[0]
 
 def constrain_rate_multiple(rate, factor):
     """
@@ -545,8 +545,8 @@ class Mechanism(object):
         for rate in self.Rates:
             str_repr += ('\nFrom ' + rate.State1.name + '  \tto ' +
                          rate.State2.name + '    \t' + rate.name +
-                         '   \t{0:.5g}'.format(rate.unit_rate()))
-
+                         '   \t' + str(rate.unit_rate()))
+                         
         for state in self.States:
             if state.statetype=='A':
                 str_repr += ('\n\nConductance of state ' + state.name + ' (pS)  = ' +
@@ -615,7 +615,7 @@ class Mechanism(object):
 
     def set_effdict(self, effdict):
         # check dictionary sanity:
-        for effname, effvalue in effdict.iteritems():
+        for effname, effvalue in effdict.items():
             if effname not in self._effdict.keys():
                 sys.stderr.write("DCPYPS: Warning: None of the rates depends on effector %s\n" % effname)
 #                errmsg = "DCPYPS: None of the rates depends on effector %s\n" % effname

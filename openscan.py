@@ -6,18 +6,18 @@ def compare_lists(hjcfit, hjcfita, hjopts, dcpyps, dcpypsa, dcopts):
     count = 0
     while not founddiff and (count < len(hjcfit)):
 #    while count < len(hjcfit):
-        print count+1, "HJCFIT:", hjcfit[count], hjopts[count], "DCPYPS:", dcpyps[count], dcopts[count]
+        print (count+1, "HJCFIT:", hjcfit[count], hjopts[count], "DCPYPS:", dcpyps[count], dcopts[count])
         if ((math.fabs(hjcfit[count] / dcpyps[count])-1 > 1.00001) or (math.fabs(dcpyps[count] / hjcfit[count])-1 > 1.00001)):
             #print "\n"
             #print hjcfit[count] / dcpyps[count]
-            print "interval # {0:d} is different".format(count+1)
-            print "HJCFIT:", hjcfit[count-1:count+10], hjcfita[count-1:count+10]
-            print "DCPYPS:", dcpyps[count-1:count+10], dcpypsa[count-1:count+10]
+            print ("interval # {0:d} is different".format(count+1))
+            print ("HJCFIT:", hjcfit[count-1:count+10], hjcfita[count-1:count+10])
+            print ("DCPYPS:", dcpyps[count-1:count+10], dcpypsa[count-1:count+10])
             founddiff = True
         count += 1
 
     if not founddiff:
-        print "two lists are similar"
+        print ("two lists are similar")
 
 def get_periods(fper):
     ptint, pampl, popts = [], [], []
@@ -112,6 +112,6 @@ rec.printout()
 print("\nPrinting bursts\n")
 count = 0
 for burst in rec.bursts.all():
-    print count+1
-    print burst
+    print (count+1)
+    print (burst)
     count += 1

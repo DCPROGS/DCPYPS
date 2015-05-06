@@ -3,8 +3,8 @@ import socket
 import datetime
 
 try:
-    from PySide.QtGui import *
-    from PySide.QtCore import *
+    from PyQt4.QtGui import *
+    from PyQt4.QtCore import *
 except:
     raise ImportError("pyqt module is missing")
 
@@ -76,7 +76,7 @@ class ConcDlg(QDialog):
 
         layout = QHBoxLayout()
         layout.addWidget(QLabel("Concentration (microM):"))
-        self.cEdit = QLineEdit(unicode(self.conc))
+        self.cEdit = QLineEdit(str(self.conc))
         self.cEdit.setMaxLength(12)
         self.connect(self.cEdit, SIGNAL("editingFinished()"),
             self.on_par_changed)
@@ -116,7 +116,7 @@ class ResDlg(QDialog):
 
         layout = QHBoxLayout()
         layout.addWidget(QLabel("Resolution (microsec):"))
-        self.rEdit = QLineEdit(unicode(self.tres))
+        self.rEdit = QLineEdit(str(self.tres))
         self.rEdit.setMaxLength(12)
         self.connect(self.rEdit, SIGNAL("editingFinished()"),
             self.on_par_changed)
@@ -134,7 +134,7 @@ class ResDlg(QDialog):
 
         layout = QHBoxLayout()
         layout.addWidget(QLabel("Fast block equilibrium constant KB (mM):"))
-        self.fbEdit = QLineEdit(unicode(self.KB))
+        self.fbEdit = QLineEdit(str(self.KB))
         self.fbEdit.setMaxLength(12)
         self.connect(self.fbEdit, SIGNAL("editingFinished()"),
             self.on_par_changed)
@@ -176,7 +176,7 @@ class ConcRangeDlg(QDialog):
 
         layout = QHBoxLayout()
         layout.addWidget(QLabel("Start concentration (mM):"))
-        self.conc1Edit = QLineEdit(unicode(self.cmin))
+        self.conc1Edit = QLineEdit(str(self.cmin))
         self.conc1Edit.setMaxLength(12)
         self.connect(self.conc1Edit, SIGNAL("editingFinished()"),
             self.on_par_changed)
@@ -185,7 +185,7 @@ class ConcRangeDlg(QDialog):
 
         layout = QHBoxLayout()
         layout.addWidget(QLabel("End concentration (mM):"))
-        self.conc2Edit = QLineEdit(unicode(self.cmax))
+        self.conc2Edit = QLineEdit(str(self.cmax))
         self.conc2Edit.setMaxLength(12)
         self.connect(self.conc2Edit, SIGNAL("editingFinished()"),
             self.on_par_changed)
@@ -230,14 +230,14 @@ class ShutRangeDlg(QDialog):
 
         layout = QHBoxLayout()
         layout.addWidget(QLabel("From shut time (ms):"))
-        self.u1Edit = QLineEdit(unicode(self.u1))
+        self.u1Edit = QLineEdit(str(self.u1))
         self.u1Edit.setMaxLength(10)
         self.connect(self.u1Edit, SIGNAL("editingFinished()"),
             self.on_par_changed)
         layout.addWidget(self.u1Edit)
         
         layout.addWidget(QLabel("To shut time (ms):"))
-        self.u2Edit = QLineEdit(unicode(self.u2))
+        self.u2Edit = QLineEdit(str(self.u2))
         self.u2Edit.setMaxLength(10)
         self.connect(self.u2Edit, SIGNAL("editingFinished()"),
             self.on_par_changed)
@@ -277,14 +277,14 @@ class ConcResDlg(QDialog):
 
         layout = QHBoxLayout()
         layout.addWidget(QLabel("Concentration (microM):"))
-        self.cEdit = QLineEdit(unicode(self.conc))
+        self.cEdit = QLineEdit(str(self.conc))
         self.cEdit.setMaxLength(12)
         self.connect(self.cEdit, SIGNAL("editingFinished()"),
             self.on_par_changed)
         layout.addWidget(self.cEdit)
         
         layout.addWidget(QLabel("Resolution (microsec):"))
-        self.rEdit = QLineEdit(unicode(self.tres))
+        self.rEdit = QLineEdit(str(self.tres))
         self.rEdit.setMaxLength(12)
         self.connect(self.rEdit, SIGNAL("editingFinished()"),
             self.on_par_changed)

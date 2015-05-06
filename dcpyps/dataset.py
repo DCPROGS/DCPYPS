@@ -2,7 +2,7 @@
 import sys
 import math
 import numpy as np
-import dcio
+from dcpyps import dcio
 
 class SCRecord(object):
     """
@@ -278,21 +278,21 @@ class SCRecord(object):
 
     def print_all_record(self):
         for i in range(len(self.itint)):
-            print i, self.itint[i], self.iampl[i], self.iprops[i]
+            print (i, self.itint[i], self.iampl[i], self.iprops[i])
 
     def print_resolved_intervals(self):
         print('\n#########\nList of resolved intervals:\n')
         for i in range(len(self.rint)):
-            print i+1, self.rint[i]*1000, self.ramp[i], self.ropt[i]
+            print (i+1, self.rint[i]*1000, self.ramp[i], self.ropt[i])
             if (self.ramp[i] == 0) and (self.rint[i] > (self.tcrit)):
                 print ('\n')
         print('\n###################\n\n')
         
     def print_resolved_periods(self):
-        print 'tcrit=', self.tcrit
+        print ('tcrit=', self.tcrit)
         print('\n#########\nList of resolved periods:\n')
         for i in range(len(self.pint)):
-            print i+1, self.pint[i], self.pamp[i], self.popt[i]
+            print (i+1, self.pint[i], self.pamp[i], self.popt[i])
             if self.pamp[i] == 0 and self.pint[i] > self.tcrit:
                 print ('\n')
         print('\n###################\n\n')
@@ -526,7 +526,7 @@ class Burst(object):
             format(self.get_length() * 1000) +
             'number of openings = {0:d}; '.format(self.get_openings_number()) +
             'Popen = {0:.3f}'.format(self.get_popen()))
-        if self.get_openings_number > 1:
+        if self.get_openings_number() > 1:
             ret_str += ('\n\t(Popen omitting last opening = {0:.3f})'.
             format(self.get_popen1()))
         ret_str += ('\n\tTotal open = {0:.3f} ms; total shut = {1:.3f} ms'.

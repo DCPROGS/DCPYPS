@@ -4,8 +4,8 @@ import os
 import yaml
 import numpy as np
 try:
-    from PySide.QtGui import *
-    from PySide.QtCore import *
+    from PyQt4.QtGui import *
+    from PyQt4.QtCore import *
 except:
     raise ImportError("pyqt module is missing")
 from dcpyps import scalcslib as scl

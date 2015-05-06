@@ -21,7 +21,7 @@ class FittingSession():
         self.LL = []
         kwargs = {'nmax': 2, 'xtol': 1e-12, 'rtol': 1e-12, 'itermax': 100,
             'lower_bound': -1e6, 'upper_bound': 0}
-        print self.recs[0].bursts.intervals()
+        print (self.recs[0].bursts.intervals())
         for i in range(len(self.recs)):
             self.LL.append(Log10Likelihood(self.recs[i].bursts.intervals(), self.mec.kA,
                 self.recs[i].tres, self.recs[i].tcrit, **kwargs))
@@ -53,11 +53,11 @@ class FittingSession():
         # FITTING BIT
         print ("\n\nFitting with DCPROGS likelihood finished: %4d/%02d/%02d %02d:%02d:%02d"
             %time.localtime()[0:6])
-        print '\n Time in simplex=', end
+        print ('\n Time in simplex=', end)
         print ('\n Final log-likelihood = {0:.6f}'.format(-result.fun))
         print ('\n Number of iterations = {0:d}'.format(result.nit))
         self.mec.theta_unsqueeze(np.exp(result.x))
-        print "\n Final rate constants:"
+        print ("\n Final rate constants:")
         self.mec.printout(sys.stdout)
 
         self.report.fit_result(self.mec, start, end, result.fun, result.nit)

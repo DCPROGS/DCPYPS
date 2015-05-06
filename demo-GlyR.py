@@ -110,16 +110,16 @@ while not success:
 end = time.clock()
 print ("\nDCPROGS Fitting finished: %4d/%02d/%02d %02d:%02d:%02d\n"
         %time.localtime()[0:6])
-print 'time in simplex=', end - start
-print '\n\nresult='
-print result
+print ('time in simplex=', end - start)
+print ('\n\nresult=')
+print (result)
 
 print ('\n Final log-likelihood = {0:.6f}'.format(-result.fun))
 print ('\n Number of iterations = {0:d}'.format(result.nit))
 print ('\n Number of evaluations = {0:d}'.format(result.nfev))
 mec.theta_unsqueeze(np.exp(result.x))
-print "\n Final rate constants:"
+print ("\n Final rate constants:")
 mec.printout(sys.stdout)
-print '\n\n'
+print ('\n\n')
 
 

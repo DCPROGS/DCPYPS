@@ -13,7 +13,7 @@ from scipy.optimize import minimize
 from dcpyps import optimize
 from dcpyps import dcio
 from dcpyps import dataset
-from dcpyps import scalcslib as scl
+#from dcpyps import scalcslib as scl
 from dcpyps import mechanism
 
 from dcprogs.likelihood import Log10Likelihood
@@ -65,7 +65,7 @@ def main():
     mec.set_rateconstants(np.exp(rates))
     mec.printout(sys.stdout)
     theta = mec.theta()
-    print '\n\ntheta=', theta
+    print ('\n\ntheta=', theta)
 
     # Prepare parameter dict for simplex
     opts = {}
@@ -78,11 +78,7 @@ def main():
 
 #################################################
 
-    start_lik, th = scl.HJClik(np.log(theta), opts)
-    print ("Starting likelihood = {0:.6f}".format(-start_lik))#
-
-    bursts = rec1.bursts.intervals()
-    likelihood = Log10Likelihood(bursts, mec.kA, tres, tcrit)
+    
 
     def dcprogslik(x, args=None):
         mec.theta_unsqueeze(np.exp(x))
@@ -95,6 +91,12 @@ def main():
         return -likelihood(mec.Q) * math.log(10)
 
 #### testing DC-Pyps simplex
+    #start_lik, th = scl.HJClik(np.log(theta), opts)
+    start_lik, th = dcprogslik(np.log(theta))
+    print ("Starting likelihood = {0:.6f}".format(-start_lik))#
+
+    bursts = rec1.bursts.intervals()
+    likelihood = Log10Likelihood(bursts, mec.kA, tres, tcrit)
     start = time.clock()
     xout, fout, niter, neval = optimize.simplex(dcprogslik,
         np.log(theta), display=True)
@@ -102,7 +104,7 @@ def main():
             %time.localtime()[0:6])
     t1 = time.clock() - start
     mec.theta_unsqueeze(np.exp(xout))
-    print "\n Final rate constants:"
+    print ("\n Final rate constants:")
     mec.printout(sys.stdout)
     print ('\n Number of iterations = {0:d}'.format(niter))
     print ('\n Number of evaluations = {0:d}'.format(neval))
@@ -116,17 +118,17 @@ def main():
             %time.localtime()[0:6])
     t2 = time.clock() - start
     mec.theta_unsqueeze(np.exp(res.x))
-    print "\n Final rate constants:"
+    print ("\n Final rate constants:")
     mec.printout(sys.stdout)
     theta = mec.theta()
     lik2, th = scl.HJClik(np.log(theta), opts)
 
-    print '\n\nresult='
-    print res
+    print ('\n\nresult=')
+    print (res)
     
-    print '\n\n\ntime in DC-Pyps simplex=', t1
+    print ('\n\n\ntime in DC-Pyps simplex=', t1)
     print ('\n Final log-likelihood = {0:.6f}'.format(-fout))
-    print '\ntime in SciPy simplex=', t2
+    print ('\ntime in SciPy simplex=', t2)
     print ("\n likelihood = {0:.6f}".format(-lik2))
     
 try:

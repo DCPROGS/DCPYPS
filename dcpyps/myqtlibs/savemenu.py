@@ -1,15 +1,10 @@
-import numpy as np
-import matplotlib.pyplot as plt
 try:
-    from PySide.QtGui import *
-    from PySide.QtCore import *
+    from PyQt4.QtGui import *
+    from PyQt4.QtCore import *
 except:
     raise ImportError("pyqt module is missing")
 
-from dcpyps import scplotlib as scpl
-from dcpyps import scalcslib as scl
-from dcpyps import popen
-import myqtcommon
+from dcpyps.myqtlibs import myqtcommon
 
 class SaveMenu(QMenu):
     """
@@ -28,9 +23,8 @@ class SaveMenu(QMenu):
     def onSavePrintOut(self):
         """
         """
-        printOutFilename, filt = QFileDialog.getSaveFileName(self,
-                "Save as PRT file...", ".prt",
-                "PRT files (*.prt)")
+        printOutFilename= QFileDialog.getSaveFileName(self,
+                "Save as PRT file...", ".prt", "PRT files (*.prt)")
 
         self.parent.textBox.selectAll()
         text = self.parent.textBox.toPlainText()
@@ -44,9 +38,8 @@ class SaveMenu(QMenu):
 
     def onSavePlotASCII(self):
 
-        savePlotTXTFilename, filt = QFileDialog.getSaveFileName(self,
-                "Save as TXT file...", self.parent.path, ".txt",
-                "TXT files (*.txt)")
+        savePlotTXTFilename = QFileDialog.getSaveFileName(self,
+                "Save as TXT file...", ".txt", "TXT files (*.txt)")
 
         fout = open(savePlotTXTFilename,'w')
         for i in range(self.parent.present_plot.shape[1]):

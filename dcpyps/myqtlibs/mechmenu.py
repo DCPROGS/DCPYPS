@@ -2,16 +2,16 @@ import os
 import yaml
 
 try:
-    from PySide.QtGui import *
-    from PySide.QtCore import *
+    from PyQt4.QtGui import *
+    from PyQt4.QtCore import *
 except:
     raise ImportError("pyqt module is missing")
 
 from dcpyps import dcio
-from dcpyps import samples
+from dcpyps.samples import samples
 from dcpyps import mechanism
 
-import myqtcommon
+from dcpyps.myqtlibs import myqtcommon
 
 class MechMenu(QMenu):
     """
@@ -89,7 +89,7 @@ class MechMenu(QMenu):
         """
         Load a mechanism and rates from DC's mec file.
         """
-        self.parent.mecfn, filt = QFileDialog.getOpenFileName(self,
+        self.parent.mecfn = QFileDialog.getOpenFileName(self,
             "Open Mec File...", self.parent.path, "DC Mec Files (*.mec *.MEC)")
         self.parent.path = os.path.split(str(self.parent.mecfn))[0]
         self.parent.log.write("\nFile to read: " + 
@@ -115,7 +115,7 @@ class MechMenu(QMenu):
         """
         Load a mechanism and rates from DC's HJCFIT.PRT file.
         """
-        filename, filt = QFileDialog.getOpenFileName(self,
+        filename = QFileDialog.getOpenFileName(self,
             "Open Mec File...", self.parent.path, 
             "DC Mec Files (*.prt *.PRT *.txt *.TXT)")
         self.parent.path = os.path.split(str(filename))[0]
@@ -131,7 +131,7 @@ class MechMenu(QMenu):
         Load a mechanism and rates from Channel Lab .mod file.
         Called from menu Load|From Channel Lab .MOD File...
         """
-        filename, filt = QFileDialog.getOpenFileName(self,
+        filename = QFileDialog.getOpenFileName(self,
             "Open MOD File...", self.parent.path,
             "Channel Lab MOD Files (*.mod *.MOD)")
         self.parent.path = os.path.split(str(filename))[0]
@@ -159,8 +159,8 @@ class MechMenu(QMenu):
         """
         """
 
-        fname, filt = QFileDialog.getSaveFileName(self,
-            "Save mechanism as YAML file...", self.parent.path, ".yaml",
+        fname = QFileDialog.getSaveFileName(self,
+            "Save mechanism as YAML file...", ".yaml",
             "YAML files (*.yaml)")
         self.parent.path = os.path.split(str(fname))[0]
         dcio.mec_save_to_yaml(self.parent.mec, fname)
@@ -170,12 +170,12 @@ class MechMenu(QMenu):
     def onLoadYAMLmec(self):
         """
         """
-        filename, filt = QFileDialog.getOpenFileName(self,
+        filename = QFileDialog.getOpenFileName(self,
             "Open YAML Mec File...", self.parent.path, "YAML Files (*.yaml)")
             
         self.parent.log.write('\n\nLoading mechanism from YAML file:')
         self.parent.log.write(filename)
-        stream = file(filename, 'r')
+        stream = open(filename, 'r')
         self.parent.mec = yaml.load(stream)
 
         self.modifyMec(self.parent.mec, self.parent.log)
@@ -214,7 +214,7 @@ class MecListDlg(QDialog):
                         present = True
                         id = j
                 if present:
-                    self.mList.addItem(str(i) + " "+ self.meclist[id][2])
+                    self.mList.addItem(str(i) + " "+ str(self.meclist[id][2]))
         self.connect(self.mList,
             SIGNAL("itemSelectionChanged()"),
             self.mecSelected)
@@ -250,7 +250,7 @@ class MecListDlg(QDialog):
         self.rList.clear()
         for i in range(len(self.meclist)):
            if self.meclist[i][1] == self.nmec:
-               self.rList.addItem(str(i+1) + " "+ self.meclist[i][3])
+               self.rList.addItem(str(i+1) + " "+ str(self.meclist[i][3]))
                self.nrate = i + 1
 
     def rateSelected(self):
@@ -311,7 +311,7 @@ class RateTableDlg(QDialog):
             if self.table.item(row, column).checkState() > 0:
                 value = True
             self.mec.Rates[row].fixed = value
-            print 'fixed value=', value
+            #print 'fixed value=', value
 
         if column == 6: # MR constrained rates
             value = False
@@ -393,12 +393,12 @@ class RateTable(QTableWidget):
         self.setColumnCount(ncols)
         self.setHorizontalHeaderLabels(header)
 
-        for i in xrange(nrows):
-            cell = QTableWidgetItem(self.mec.Rates[i].State1.name)
+        for i in range(nrows):
+            cell = QTableWidgetItem(str(self.mec.Rates[i].State1.name))
             self.setItem(i, 0, cell)
-            cell = QTableWidgetItem(self.mec.Rates[i].State2.name)
+            cell = QTableWidgetItem(str(self.mec.Rates[i].State2.name))
             self.setItem(i, 1, cell)
-            cell = QTableWidgetItem(self.mec.Rates[i].name)
+            cell = QTableWidgetItem(str(self.mec.Rates[i].name))
             self.setItem(i, 2, cell)
             cell = QTableWidgetItem(str(self.mec.Rates[i].unit_rate()))
             self.setItem(i, 3, cell)
@@ -531,7 +531,7 @@ class StateTable(QTableWidget):
         self.setColumnCount(ncols)
         self.setHorizontalHeaderLabels(header)
 
-        for i in xrange(nrows):
+        for i in range(nrows):
             cell = QTableWidgetItem(self.mec.States[i].name)
             self.setItem(i, 0, cell)
             cell = QTableWidgetItem(self.mec.States[i].statetype)

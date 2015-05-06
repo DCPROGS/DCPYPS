@@ -9,11 +9,9 @@ from array import array
 import numpy as np
 import pandas as pd
 import yaml
-from pylab import figure, semilogx, savefig
 
 import dcpyps
 from dcpyps import mechanism
-from dcpyps import scplotlib as scpl
 
 def mec_get_list(mecfile):
     """
@@ -69,9 +67,9 @@ def mec_get_list(mecfile):
         mecnum = ints.pop()
         if mecnum > max_mecnum:
             max_mecnum = mecnum
-        mectitle = f.read(74)
+        mectitle = f.read(74).decode("utf-8")
         ints.fromfile(f,5)
-        ratetitle = f.read(74)
+        ratetitle = f.read(74).decode("utf-8")
         
         set = []
         set.append(jstart[i])
@@ -106,7 +104,7 @@ def mec_choose_from_list(meclist, max_mecnum):
     """
 
     # List all mechs and choose one.
-    print ' Model #              title'
+    print (' Model #              title')
     ndisp = 0
     for i in range(1, (max_mecnum + 1)):
             present = False
@@ -116,7 +114,7 @@ def mec_choose_from_list(meclist, max_mecnum):
                     present = True
                     id = j
             if present:
-                print i, meclist[id][2]
+                print (i, meclist[id][2])
                 ndisp += 1
                 if ndisp % 20 == 0:
                     raw_input('\n   Hit ENTER for more... \n')
@@ -125,7 +123,7 @@ def mec_choose_from_list(meclist, max_mecnum):
             "\nWhich mechanism would you like to read (1 to %d)? ... "
             %max_mecnum))
     except:
-        print "\nError: model number not entered!"
+        print ("\nError: model number not entered!")
         mecnum = max_mecnum
 
     # List and choose rate constants.
@@ -136,7 +134,7 @@ def mec_choose_from_list(meclist, max_mecnum):
     ndisp = 0
     for i in range(len(meclist)):
        if meclist[i][1] == mecnum:
-           print (i+1), meclist[i][3]
+           print ((i+1), meclist[i][3])
            ndisp += 1
            if ndisp % 20 == 0:
                raw_input("\n   Hit ENTER for more... \n")
@@ -144,10 +142,10 @@ def mec_choose_from_list(meclist, max_mecnum):
         ratenum = (int(raw_input(
             "\nWhich rate set would you like to read?... ")) - 1)
     except:
-        print "Error: rate set number not entered!"
+        print ("Error: rate set number not entered!")
 
     if (ratenum < 0) or (ratenum > len(meclist)):
-        print "Error: not valid rate set number!"
+        print ("Error: not valid rate set number!")
 
     return mecnum, ratenum
 
@@ -271,14 +269,14 @@ def mec_load(mecfile, start):
     for j in range(0, jlast):
         Ich = []
         for i in range(0, ilast):  # 500 is max
-             charmod = f.read(2)
+             charmod = f.read(2)#.decode("utf-8")
              Ich.append(charmod)
         Jch.append(Ich)
     for i in range(0,ilast):
         IIch = []
         for j in range(0, jlast):
             IIch.append(Jch[j][i])
-        print ''.join(IIch)
+        #print (''.join(IIch))
 
     # Read rate constants.
     irate = []
@@ -295,12 +293,12 @@ def mec_load(mecfile, start):
         QT[irate[i]-1, jrate[i]-1] = doubles.pop()
     ratename = []
     for i in range(npar):
-        ratename.append(f.read(10))
+        ratename.append(f.read(10).decode("utf-8"))
         #print ratename[i], "QT[",irate[i],",",jrate[i],"]=", QT[irate[i]-1,jrate[i]-1]
 
     # Read ligand name and ligand molecules bound in each state.
     for j in range(0, nlig):
-        ligname = f.read(20)
+        ligname = f.read(20).decode("utf-8")
         #print "Number of ligand %s molecules bound to states:" %ligname
     nbound = np.zeros((nlig,k), 'int32')
     for i in range(nlig):
@@ -418,10 +416,10 @@ def mec_load(mecfile, start):
 
     statenames = []
     for i in range(0, kstat):
-        statename = f.read(10)
+        statename = f.read(10).decode("utf-8")
         statenames.append(statename.split()[0])
         #print "State name:", statename
-    print "\n"
+    #print ("\n")
 
     ints.fromfile(f,1)
     nsub = ints.pop()
@@ -467,10 +465,10 @@ def mec_load(mecfile, start):
             StateList[jrate[i]-1], name=ratename[i], eff=bound))
 
     CycleList = []
-    for i in xrange(ncyc):
+    for i in range(ncyc):
 #        mrconstrained = False
         CycleStates = []
-        for j in xrange(nsc[i]):
+        for j in range(nsc[i]):
             CycleStates.append(statenames[im[i, j]-1])
         CycleList.append(dcpyps.Cycle(CycleStates))
 
@@ -494,7 +492,7 @@ def mec_load_from_prt(filename, verbose=False):
         version = 'win'
     else:
         version = 'dos'
-    if verbose: print 'version=', version
+    if verbose: print ('version=', version)
 
     while True:
         try:
@@ -508,7 +506,7 @@ def mec_load_from_prt(filename, verbose=False):
             print('Mecanism loading from PRT (or TXT) file finished.')
             
         if "HJCFIT: Fit of model to open-shut times with missed events" in line:
-            if verbose: print 'This is possibly HJCFIT printout file.'
+            if verbose: print ('This is possibly HJCFIT printout file.')
             
         if "No of states in each subset: kA, kB, kC, kD =" in line:
             kA = int(line.split()[-4].strip())
@@ -534,7 +532,7 @@ def mec_load_from_prt(filename, verbose=False):
             
         if "Number of ligands =" in line:
             nlig = int(line.split()[-1].strip())
-            if verbose: print "Number of ligands = {0:d}".format(nlig)
+            if verbose: print ("Number of ligands = {0:d}".format(nlig))
             f.readline() #'Concentration-dependent elements:'
             f.readline() #'  i   j     ligand #   Ligand name'
             line = f.readline()
@@ -545,9 +543,9 @@ def mec_load_from_prt(filename, verbose=False):
                 jm.append(int(temp[1]))
                 lig.append(temp[-1])
                 line = f.readline()
-            if verbose: print "im=", im
-            if verbose: print "jm=", jm
-            if verbose: print "lig=", lig
+            if verbose: print ("im=", im)
+            if verbose: print ("jm=", jm)
+            if verbose: print ("lig=", lig)
                 
         
         if (version == 'dos') and ("Cycle #" in line) and (int(line[-1]) > ncyc):
@@ -566,9 +564,9 @@ def mec_load_from_prt(filename, verbose=False):
             nsc.append(len(c1))
             im2.append(c1)
             jm2.append(c2)
-            if verbose: print "Cycle # ", ncyc
-            if verbose: print nsc
-            if verbose: print im2, jm2
+            if verbose: print ("Cycle # ", ncyc)
+            if verbose: print (nsc)
+            if verbose: print (im2, jm2)
 
         if (version == 'win') and ("Microscopic reversibility" in line):
             line = f.readline()
@@ -610,8 +608,8 @@ def mec_load_from_prt(filename, verbose=False):
                     states.append(temp[1])
                     ligbound.append(int(temp[2]))
                 line = f.readline()
-            if verbose: print 'states: ', states
-            if verbose: print 'ligandsbound=', ligbound
+            if verbose: print ('states: ', states)
+            if verbose: print ('ligandsbound=', ligbound)
                 
         if "Resolution for HJC calculations" in line:
             line = f.readline()
@@ -620,7 +618,7 @@ def mec_load_from_prt(filename, verbose=False):
                 if len(temp) == 4:
                     tres.append(float(temp[2]) * 1e-6)
                 line = f.readline()
-            if verbose: print 'resolution: ', tres
+            if verbose: print ('resolution: ', tres)
             
         if "The following parameters are constrained:" in line:
             line = f.readline()
@@ -660,7 +658,7 @@ def mec_load_from_prt(filename, verbose=False):
                         rates[item[0]].append(item[1])
                         rates[item[0]].append(item[2])
                         rates[item[0]].append(item[3])
-            if verbose: print rates
+            if verbose: print (rates)
             
         if (version == 'win') and ("initial        final" in line):
             while len(rates) < numrates:
@@ -691,7 +689,7 @@ def mec_load_from_prt(filename, verbose=False):
                 '\nNumber set by fixed EC50    = {0:d}'.format(numec50) +
                 '\nNumber of free rates to be estimated = {0:d}'.format(numfree))
 
-    if verbose: print 'file contains {0:d} lines'.format(linenum)
+    if verbose: print ('file contains {0:d} lines'.format(linenum))
     f.close()
     
     StateList = []
@@ -1009,7 +1007,7 @@ def mod_load(file):
     return dcpyps.Mechanism(RateList, mtitle=modtitle), modtitle
 
 def mec_save_to_yaml(mec, fname):
-    stream = file(fname, 'w')
+    stream = open(fname, 'w')
     yaml.dump(mec, stream)
 
 def scn_read_header (fname, verbose=False):
@@ -1030,7 +1028,7 @@ def scn_read_header (fname, verbose=False):
     header['iscanver'] = ints.pop()
     # new scan files- version 104, 103 (simulated) and -103
     version = header['iscanver']
-    if verbose: print 'version', version
+    if verbose: print ('version', version)
 
     ints.fromfile(f,1)
     ioffset = ints.pop()
@@ -1705,7 +1703,7 @@ def abf_read_header (filename, debug=1):
     floats.fromfile(fid, 1)
     h['fFileVersionNumber'] = round(floats.pop() * 10) * 0.1
     if debug:
-        print 'File signature: ', h['IFileSignature'], h['fFileVersionNumber']
+        print ('File signature: ', h['IFileSignature'], h['fFileVersionNumber'])
 
     shorts.fromfile(fid, 1)
     h['nOperationMode'] = shorts.pop()
@@ -2158,11 +2156,11 @@ def ini_HJCFIT_read(filename, verbose=False):
         ints.fromfile(f,1)
         iftype = ints.pop()
         ini['initype'] = iftype
-        if verbose: print 'iftype=', iftype
+        if verbose: print ('iftype=', iftype)
     if ftype == 'windows':
         ftype = f.read(8)
         ini['initype'] = ftype
-        if verbose: print 'ftype=', ftype
+        if verbose: print ('ftype=', ftype)
 
     # path names for scn files
     pfiles = []
@@ -2174,59 +2172,59 @@ def ini_HJCFIT_read(filename, verbose=False):
             else:
                 temp.append(f.read(33))
         pfiles.append(temp)
-    if verbose: print 'pfiles:', pfiles
+    if verbose: print ('pfiles:', pfiles)
 
     # number of fixed rates
     ints.fromfile(f,1)
     nfix = ints.pop()
-    if verbose: print 'nfix=', nfix
+    if verbose: print ('nfix=', nfix)
     # mark fixed rates
     jfix = []
     for i in range(200):
         ints.fromfile(f,1)
         jfix.append(ints.pop())
-    if verbose: print 'jfix=', jfix
+    if verbose: print ('jfix=', jfix)
 
     ints.fromfile(f,1)
     neq = ints.pop()
-    if verbose: print 'neq=', neq
+    if verbose: print ('neq=', neq)
 
     ie = []
     for i in range(200):
         ints.fromfile(f,1)
         ie.append(ints.pop())
-    if verbose: print 'ie=', ie
+    if verbose: print ('ie=', ie)
 
     je = []
     for i in range(200):
         ints.fromfile(f,1)
         je.append(ints.pop())
-    if verbose: print 'je=', je
+    if verbose: print ('je=', je)
 
     efac = []
     for i in range(200):
         floats.fromfile(f,1)
         efac.append(floats.pop())
-    if verbose: print 'efac=', efac
+    if verbose: print ('efac=', efac)
 
     iff = []
     for i in range(200):
         ints.fromfile(f,1)
         iff.append(ints.pop())
-    if verbose: print 'iff=', iff
+    if verbose: print ('iff=', iff)
 
     jff = []
     for i in range(200):
         ints.fromfile(f,1)
         jff.append(ints.pop())
-    if verbose: print 'jff=', jff
+    if verbose: print ('jff=', jff)
 
     # mark constrained rates
     jcon = []
     for i in range(200):
         ints.fromfile(f,1)
         jcon.append(ints.pop())
-    if verbose: print 'jcon=', jcon
+    if verbose: print ('jcon=', jcon)
 
     im = []
     for i in range(50):
@@ -2235,7 +2233,7 @@ def ini_HJCFIT_read(filename, verbose=False):
             ints.fromfile(f,1)
             temp.append(ints.pop())
         im.append(temp)
-    if verbose: print 'im', im
+    if verbose: print ('im', im)
     jm = []
     for i in range(50):
         temp = []
@@ -2243,52 +2241,52 @@ def ini_HJCFIT_read(filename, verbose=False):
             ints.fromfile(f,1)
             temp.append(ints.pop())
         jm.append(temp)
-    if verbose: print 'jm', jm
+    if verbose: print ('jm', jm)
 
     # mark rates constrained by microscopic reversibility
     jmic = []
     for i in range(200):
         ints.fromfile(f,1)
         jmic.append(ints.pop())
-    if verbose: print 'jmic=', jmic
+    if verbose: print ('jmic=', jmic)
 
     ints.fromfile(f,1)
     ndisp = ints.pop()
-    if verbose: print 'ndisp=', ndisp
+    if verbose: print ('ndisp=', ndisp)
 
     ints.fromfile(f,1)
     irecq = ints.pop()
-    if verbose: print 'irecq=', irecq
+    if verbose: print ('irecq=', irecq)
 
     ans1 = f.read(1)
-    if verbose: print 'ans1', ans1
+    if verbose: print ('ans1', ans1)
 
     ylo = []
     for i in range(20):
         floats.fromfile(f,1)
         ylo.append(floats.pop())
-    if verbose: print 'ylo=', ylo
+    if verbose: print ('ylo=', ylo)
 
     yhi = []
     for i in range(20):
         floats.fromfile(f,1)
         yhi.append(floats.pop())
-    if verbose: print 'yhi=', yhi
+    if verbose: print ('yhi=', yhi)
 
     ints.fromfile(f,1)
     nrange = ints.pop()
-    if verbose: print 'nrange=', nrange
+    if verbose: print ('nrange=', nrange)
 
     ints.fromfile(f,1)
     idiskq = ints.pop()
-    if verbose: print 'idiskq=', idiskq
+    if verbose: print ('idiskq=', idiskq)
 
     # Number of scn files to concatenate for each concentration
     nfileb = []
     for i in range(10):
         ints.fromfile(f,1)
         nfileb.append(ints.pop())
-    if verbose: print 'nfileb', nfileb
+    if verbose: print ('nfileb', nfileb)
 
     kfile = []
     for i in range(20):
@@ -2297,12 +2295,12 @@ def ini_HJCFIT_read(filename, verbose=False):
             ints.fromfile(f,1)
             temp.append(ints.pop())
         kfile.append(temp)
-    if verbose: print 'kfile', kfile
+    if verbose: print ('kfile', kfile)
   
     # Rate set number in mec file
     ints.fromfile(f,1)
     nset = ints.pop()
-    if verbose: print 'nset=', nset
+    if verbose: print ('nset=', nset)
 
     conc = []
     for i in range(10):
@@ -2311,36 +2309,36 @@ def ini_HJCFIT_read(filename, verbose=False):
             floats.fromfile(f,1)
             temp.append(floats.pop())
         conc.append(temp)
-    if verbose: print 'conc', conc
+    if verbose: print ('conc', conc)
 
     tcrit = []
     for i in range(10):
         floats.fromfile(f,1)
         tcrit.append(floats.pop())
-    if verbose: print 'tcrit=', tcrit
+    if verbose: print ('tcrit=', tcrit)
 
     burst = []
     for i in range(10):
         ints.fromfile(f,1)
         burst.append(ints.pop())
-    if verbose: print 'burst=', burst
+    if verbose: print ('burst=', burst)
 
     ints.fromfile(f,1)
     irecq1 = ints.pop()
-    if verbose: print 'irecq1=', irecq1
+    if verbose: print ('irecq1=', irecq1)
 
     ints.fromfile(f,1)
     idatyp = ints.pop()
-    if verbose: print 'idatyp=', idatyp
+    if verbose: print ('idatyp=', idatyp)
 
     # path for plq file
     qfile = f.read(40)
-    if verbose: print 'qfile:', qfile
+    if verbose: print ('qfile:', qfile)
 
     # model number
     ints.fromfile(f,1)
     imodold = ints.pop()
-    if verbose: print 'imodold=', imodold
+    if verbose: print ('imodold=', imodold)
 
     # set bad 0=shut, 1=open intervals
     setbad = []
@@ -2350,7 +2348,7 @@ def ini_HJCFIT_read(filename, verbose=False):
             ints.fromfile(f,1)
             temp.append(ints.pop())
         setbad.append(temp)
-    if verbose: print 'setbad', setbad
+    if verbose: print ('setbad', setbad)
     tcbad = []
     for i in range(2):
         temp = []
@@ -2358,18 +2356,18 @@ def ini_HJCFIT_read(filename, verbose=False):
             floats.fromfile(f,1)
             temp.append(floats.pop())
         tcbad.append(temp)
-    if verbose: print 'tcbad', tcbad
+    if verbose: print ('tcbad', tcbad)
 
     # one channel only?
     ints.fromfile(f,1)
     onechan = ints.pop()
-    if verbose: print 'onechan=', onechan
+    if verbose: print ('onechan=', onechan)
 
     nbad1 = []
     for i in range(10):
         ints.fromfile(f,1)
         nbad1.append(ints.pop())
-    if verbose: print 'nbad1=', nbad1
+    if verbose: print ('nbad1=', nbad1)
 
     # set bad bits from stability plots
     isbad = []
@@ -2379,7 +2377,7 @@ def ini_HJCFIT_read(filename, verbose=False):
             ints.fromfile(f,1)
             temp.append(ints.pop())
         isbad.append(temp)
-    if verbose: print 'isbad', isbad
+    if verbose: print ('isbad', isbad)
     iebad = []
     for i in range(20):
         temp = []
@@ -2387,77 +2385,77 @@ def ini_HJCFIT_read(filename, verbose=False):
             ints.fromfile(f,1)
             temp.append(ints.pop())
         iebad.append(temp)
-    if verbose: print 'iebad', iebad
+    if verbose: print ('iebad', iebad)
 
     tresolb = []
     for i in range(10):
         floats.fromfile(f,1)
         tresolb.append(floats.pop())
-    if verbose: print 'tresolb=', tresolb
+    if verbose: print ('tresolb=', tresolb)
 
     ans3 = f.read(1)
-    if verbose: print 'ans3', ans3
+    if verbose: print ('ans3', ans3)
 
     ans4 = f.read(1)
-    if verbose: print 'ans4', ans4
+    if verbose: print ('ans4', ans4)
 
     ints.fromfile(f,1)
     nlvar = ints.pop()
-    if verbose: print 'nlvar=', nlvar
+    if verbose: print ('nlvar=', nlvar)
 
     ints.fromfile(f,1)
     fixec50 = ints.pop()
-    if verbose: print 'fixec50=', fixec50
+    if verbose: print ('fixec50=', fixec50)
 
     doubles.fromfile(f,1)
     ec50 = doubles.pop()
-    if verbose: print 'ec50=', ec50
+    if verbose: print ('ec50=', ec50)
 
     ints.fromfile(f,1)
     i50 = ints.pop()
-    if verbose: print 'i50=', i50
+    if verbose: print ('i50=', i50)
 
     ints.fromfile(f,1)
     j50 = ints.pop()
-    if verbose: print 'j50=', j50
+    if verbose: print ('j50=', j50)
 
     ints.fromfile(f,1)
     m50 = ints.pop()
-    if verbose: print 'm50=', m50
+    if verbose: print ('m50=', m50)
 
     doubles.fromfile(f,1)
     xqlo = doubles.pop()
-    if verbose: print 'xqlo=', xqlo
+    if verbose: print ('xqlo=', xqlo)
 
     doubles.fromfile(f,1)
     xqhi = doubles.pop()
-    if verbose: print 'xqhi=', xqhi
+    if verbose: print ('xqhi=', xqhi)
 
     # number of open and shut states
     ints.fromfile(f,1)
     kAm = ints.pop()
-    if verbose: print 'kAm=', kAm
+    if verbose: print ('kAm=', kAm)
     ints.fromfile(f,1)
     kFm = ints.pop()
-    if verbose: print 'kFm=', kFm
+    if verbose: print ('kFm=', kFm)
 
     # use CHS vectors
     chsvec = []
     for i in range(10):
         ints.fromfile(f,1)
         chsvec.append(ints.pop())
-    if verbose: print 'chsvec=', chsvec
+    if verbose: print ('chsvec=', chsvec)
 
     ints.fromfile(f,1)
     ncyc2 = ints.pop()
-    if verbose: print 'ncyc2=', ncyc2
+    if verbose: print ('ncyc2=', ncyc2)
 
     # Get number of states in each cycle and connections.
     nsc2 = []
     for i in range(0, ncyc2):
         ints.fromfile(f,1)
         nsc2.append(ints.pop())
-    if verbose: print "nsc2=", nsc2
+    if verbose: print ("nsc2=", nsc2)
     im2 = []
     for i in range(0, ncyc2):
         temp = []
@@ -2465,7 +2463,7 @@ def ini_HJCFIT_read(filename, verbose=False):
             ints.fromfile(f,1)
             temp.append(ints.pop())
         im2.append(temp)
-    if verbose: print "im2=",im2
+    if verbose: print ("im2=",im2)
     jm2 = []
     for i in range(0, ncyc2):
         temp = []
@@ -2473,166 +2471,166 @@ def ini_HJCFIT_read(filename, verbose=False):
             ints.fromfile(f,1)
             temp.append(ints.pop())
         jm2.append(temp)
-    if verbose: print "jm2=", jm2
+    if verbose: print ("jm2=", jm2)
 
     # association rate limit
     doubles.fromfile(f,1)
     assmax = doubles.pop()
-    if verbose: print 'assmax=', assmax
+    if verbose: print ('assmax=', assmax)
 
     # mec file path
     if iftype == 100:
         qmec = f.read(60)
     else:
         qmec = f.read(40)
-    if verbose: print 'qmec', qmec
+    if verbose: print ('qmec', qmec)
 
     ints.fromfile(f,1)
     nsim = ints.pop()
-    if verbose: print 'nsim=', nsim
+    if verbose: print ('nsim=', nsim)
 
     ints.fromfile(f,1)
     irect = ints.pop()
-    if verbose: print 'irect=', irect
+    if verbose: print ('irect=', irect)
 
     ints.fromfile(f,1)
     logsav = ints.pop()
-    if verbose: print 'logsav=', logsav
+    if verbose: print ('logsav=', logsav)
 
     ints.fromfile(f,1)
     imodolds = ints.pop()
-    if verbose: print 'imodolds=', imodolds
+    if verbose: print ('imodolds=', imodolds)
 
     badend = []
     for i in range(10):
         ints.fromfile(f,1)
         badend.append(ints.pop())
-    if verbose: print 'badend=', badend
+    if verbose: print ('badend=', badend)
 
     iexcop = []
     for i in range(10):
         ints.fromfile(f,1)
         iexcop.append(ints.pop())
-    if verbose: print 'iexcop=', iexcop
+    if verbose: print ('iexcop=', iexcop)
 
     gaplo = []
     for i in range(10):
         floats.fromfile(f,1)
         gaplo.append(floats.pop())
-    if verbose: print 'gaplo=', gaplo
+    if verbose: print ('gaplo=', gaplo)
 
     gaphi = []
     for i in range(10):
         floats.fromfile(f,1)
         gaphi.append(floats.pop())
-    if verbose: print 'gaphi=', gaphi
+    if verbose: print ('gaphi=', gaphi)
 
     ints.fromfile(f,1)
     dcmod = ints.pop()
-    if verbose: print 'dcmod=', dcmod
+    if verbose: print ('dcmod=', dcmod)
 
     # parameters for grouped (closely spaced) asymptotic roots
     ints.fromfile(f,1)
     slopsch = ints.pop()
-    if verbose: print 'slopsch=', slopsch
+    if verbose: print ('slopsch=', slopsch)
 
     ints.fromfile(f,1)
     checkgrp = ints.pop()
-    if verbose: print 'checkgrp=', checkgrp
+    if verbose: print ('checkgrp=', checkgrp)
 
     doubles.fromfile(f,1)
     rcrit = doubles.pop()
-    if verbose: print 'rcrit=', rcrit
+    if verbose: print ('rcrit=', rcrit)
 
     ints.fromfile(f,1)
     ngpcheck = ints.pop()
-    if verbose: print 'ngpcheck=', ngpcheck
+    if verbose: print ('ngpcheck=', ngpcheck)
 
     # parameters for using narrower guesses when fit is stabilised
     # 200 evals since last rootsch call
     ints.fromfile(f,1)
     nstab1 = ints.pop()
-    if verbose: print 'nstab1=', nstab1
+    if verbose: print ('nstab1=', nstab1)
     # guesses = rootF +/- 10% after nstab1 evaluations
     doubles.fromfile(f,1)
     gfac1 = doubles.pop()
-    if verbose: print 'gfac1=', gfac1
+    if verbose: print ('gfac1=', gfac1)
     # 500 evals since last rootsch call
     ints.fromfile(f,1)
     nstab2 = ints.pop()
-    if verbose: print 'nstab2=', nstab2
+    if verbose: print ('nstab2=', nstab2)
     # guesses = rootF +/- 2% after nstab2 evaluations
     doubles.fromfile(f,1)
     gfac2 = doubles.pop()
-    if verbose: print 'gfac2=', gfac2
+    if verbose: print ('gfac2=', gfac2)
 
     ans5 = f.read(1)
-    if verbose: print 'ans5', ans5
+    if verbose: print ('ans5', ans5)
 
 
     ints.fromfile(f,1)
     nfixec50 = ints.pop()
-    if verbose: print 'nfixec50=', nfixec50
+    if verbose: print ('nfixec50=', nfixec50)
 
     doubles.fromfile(f,1)
     ec502 = doubles.pop()
-    if verbose: print 'ec502=', ec502
+    if verbose: print ('ec502=', ec502)
 
     ints.fromfile(f,1)
     i502 = ints.pop()
-    if verbose: print 'i502=', i502
+    if verbose: print ('i502=', i502)
 
     ints.fromfile(f,1)
     j502 = ints.pop()
-    if verbose: print 'j502=', j502
+    if verbose: print ('j502=', j502)
 
     ints.fromfile(f,1)
     m502 = ints.pop()
-    if verbose: print 'm502=', m502
+    if verbose: print ('m502=', m502)
 
     doubles.fromfile(f,1)
     xqlo2 = doubles.pop()
-    if verbose: print 'xqlo2=', xqlo2
+    if verbose: print ('xqlo2=', xqlo2)
 
     doubles.fromfile(f,1)
     xqhi2 = doubles.pop()
-    if verbose: print 'xqhi2=', xqhi2
+    if verbose: print ('xqhi2=', xqhi2)
 
     ints.fromfile(f,1)
     useprim = ints.pop()
-    if verbose: print 'useprim=', useprim
+    if verbose: print ('useprim=', useprim)
 
     isetmr = []
     for i in range(0, ncyc2):
         ints.fromfile(f,1)
         isetmr.append(ints.pop())
-    if verbose: print "isetmr=", isetmr
+    if verbose: print ("isetmr=", isetmr)
 
     doubles.fromfile(f,1)
     ratemax = doubles.pop()
-    if verbose: print 'ratemax=', ratemax
+    if verbose: print ('ratemax=', ratemax)
 
     # number of rates actually set by microscopic reversibility
     ints.fromfile(f,1)
     nmr = ints.pop()
-    if verbose: print 'nmr=', nmr
+    if verbose: print ('nmr=', nmr)
 
     # number of ligands
     ints.fromfile(f,1)
     nlig = ints.pop()
-    if verbose: print 'nlig=', nlig
+    if verbose: print ('nlig=', nlig)
 
     conc_ec1 = []
     for i in range(0, nlig):
         floats.fromfile(f,1)
         conc_ec1.append(floats.pop())
-    if verbose: print "conc_ec1=", conc_ec1
+    if verbose: print ("conc_ec1=", conc_ec1)
 
     conc_ec2 = []
     for i in range(0, nlig):
         floats.fromfile(f,1)
         conc_ec2.append(floats.pop())
-    if verbose: print "conc_ec2=", conc_ec2
+    if verbose: print ("conc_ec2=", conc_ec2)
 
     f.close()
     
@@ -2696,22 +2694,7 @@ def txt_load_one_col(filename):
 #            print 'value=', value
             data.append(value)
 
-    print "number of original intervals =", len(lines)
-    print "number of useful intervals =", len(data)
+    print ("number of original intervals =", len(lines))
+    print ("number of useful intervals =", len(data))
     return data
 
-def png_save_pdf_fig(outfile, ints, mec, conc, tres, type):
-    x, y, dx = scpl.prepare_hist(ints, tres)
-    mec.set_eff('c', conc)
-    if type == 'open':
-        t, ipdf, epdf, apdf = scpl.open_time_pdf(mec, tres)
-    elif type == 'shut':
-        t, ipdf, epdf, apdf = scpl.shut_time_pdf(mec, tres)
-    else:
-        print 'Wrong type.'
-
-    sipdf = scpl.scaled_pdf(t, ipdf, math.log10(dx), len(ints))
-    sepdf = scpl.scaled_pdf(t, epdf, math.log10(dx), len(ints))
-    figure(figsize=(6, 4))
-    semilogx(x*1000, y, 'k-', t, sipdf, 'r--', t, sepdf, 'b-')
-    savefig(outfile, bbox_inches=0)

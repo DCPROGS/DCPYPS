@@ -55,7 +55,7 @@ def main():
     mec.update_mr()
     mec.printout(sys.stdout)
     theta = mec.theta()
-    print '\ntheta=', theta
+    print ('\ntheta=', theta)
 
     # Prepare parameter dict for DC-Pyps simplex
     opts = {}
@@ -79,16 +79,16 @@ def main():
     t1 = time.clock() - start
     print ("\nFitting finished: %4d/%02d/%02d %02d:%02d:%02d\n"
             %time.localtime()[0:6])
-    print 'time in simplex=', t1
+    print ('time in simplex=', t1)
     # Display results.
     mec.theta_unsqueeze(np.exp(xout))
-    print "\n Final rate constants:"
+    print ("\n Final rate constants:")
     mec.printout(sys.stdout)
     lik1 = -fout
     print ('\n Final log-likelihood = {0:.6f}'.format(lik1))
     print ('\n Number of evaluations = {0:d}'.format(neval))
     print ('\n Number of iterations = {0:d}'.format(niter))
-    print '\n\n'
+    print ('\n\n')
     
     #######   DCPROGS likelihood
     bursts = rec1.bursts.intervals()
@@ -110,13 +110,13 @@ def main():
     t2 = time.clock() - start
     print ("\nFitting with DCPROGS likelihood finished: %4d/%02d/%02d %02d:%02d:%02d\n"
             %time.localtime()[0:6])
-    print 'time in simplex=', t2
+    print ('time in simplex=', t2)
     lik2 = -lik
     print ('\n Final log-likelihood = {0:.6f}'.format(lik2))
     print ('\n Number of iterations = {0:d}'.format(niter))
-    print 'xout', xout
+    print ('xout', xout)
     mec.theta_unsqueeze(np.exp(xout))
-    print "\n Final rate constants:"
+    print ("\n Final rate constants:")
     mec.printout(sys.stdout)
     
     
@@ -125,10 +125,10 @@ def main():
     t3 = time.clock() - start
     print ("\n\n\nScyPy.minimize (Powell) Fitting finished: %4d/%02d/%02d %02d:%02d:%02d\n"
             %time.localtime()[0:6])
-    print 'time in ScyPy.minimize (Powell)=', t3
-    print 'xout', res.x
+    print ('time in ScyPy.minimize (Powell)=', t3)
+    print ('xout', res.x)
     mec.theta_unsqueeze(np.exp(res.x))
-    print "\n Final rate constants:"
+    print ("\n Final rate constants:")
     mec.printout(sys.stdout)
     lik, th = scl.HJClik(res.x, opts)
     lik3 = -lik

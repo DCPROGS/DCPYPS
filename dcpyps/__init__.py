@@ -38,20 +38,20 @@ Phil Trans R Soc Lond A 354, 2555-2590.
 """
 
 #import bisectHJC
-import optimize
-import dcio
-import dcpypsrc
-from mechanism import * # this should really be in the namespace
+#import optimize
+from dcpyps import dcio
+#import dcpypsrc
+from dcpyps.mechanism import * # this should really be in the namespace
                         # so that dcpyps.Mechanism is something like
                         # numpy.array
-import pdfs
-import popen
-# import qmatgui
-import qmatlib
-import scalcslib
-import scburst
-import scplotlib
-import version
+#import pdfs
+#import popen
+## import qmatgui
+#import qmatlib
+#import scalcslib
+#import scburst
+#import scplotlib
+from dcpyps import version
 
-import samples
-import dcstatslib
+from dcpyps import samples
+from dcpyps import fitMLL

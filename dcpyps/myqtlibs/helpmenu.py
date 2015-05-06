@@ -1,15 +1,10 @@
-import numpy as np
-import matplotlib.pyplot as plt
 try:
-    from PySide.QtGui import *
-    from PySide.QtCore import *
+    from PyQt4.QtGui import *
+    from PyQt4.QtCore import *
 except:
     raise ImportError("pyqt module is missing")
 
-from dcpyps import scplotlib as scpl
-from dcpyps import scalcslib as scl
-from dcpyps import popen
-import myqtcommon
+from dcpyps.myqtlibs import myqtcommon
 
 class HelpMenu(QMenu):
     """
