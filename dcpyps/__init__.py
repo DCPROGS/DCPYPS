@@ -37,21 +37,10 @@ and maximum likelihood fitting of mechanisms.
 Phil Trans R Soc Lond A 354, 2555-2590.
 """
 
-#import bisectHJC
-#import optimize
 from dcpyps import dcio
-#import dcpypsrc
+from dcpyps import dcpypsrc
 from dcpyps.mechanism import * # this should really be in the namespace
                         # so that dcpyps.Mechanism is something like
                         # numpy.array
-#import pdfs
-#import popen
-## import qmatgui
-#import qmatlib
-#import scalcslib
-#import scburst
-#import scplotlib
 from dcpyps import version
-
 from dcpyps import samples
-from dcpyps import fitMLL

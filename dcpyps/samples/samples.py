@@ -87,6 +87,27 @@ def CCO():
 
     return  dcpyps.Mechanism(RateList, mtitle=mectitle, rtitle=ratetitle)
 
+def CCOD():
+    
+    mectitle = 'C-C-O-D'
+    ratetitle = 'quasi random numbers'
+
+    AD   = dcpyps.State('B', 'AD', 0.0)
+    ARS  = dcpyps.State('A', 'AR*', 50e-12)
+    AR   = dcpyps.State('B', 'AR', 0.0)
+    R    = dcpyps.State('C', 'R', 0.0)
+
+    RateList = [
+         dcpyps.Rate(15000.0, AR, ARS, name='beta', limits=[1e-15,1e+7]),
+         dcpyps.Rate(500.0, ARS, AR, name='alpha', limits=[1e-15,1e+7]),
+         dcpyps.Rate(200.0, AD, ARS, name='doff', limits=[1e-15,1e+7]),
+         dcpyps.Rate(10.0, ARS, AD, name='don', limits=[1e-15,1e+7]),
+         dcpyps.Rate(2000.0, AR, R, name='koff', limits=[1e-15,1e+7]),
+         dcpyps.Rate(5.0e08, R, AR, name='kon', eff='c', limits=[1e-15,1e+10]),
+         ]
+
+    return  dcpyps.Mechanism(RateList, mtitle=mectitle, rtitle=ratetitle)
+
 def CCOB():
     
     mectitle = 'C-C-O-B'
