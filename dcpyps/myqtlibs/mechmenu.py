@@ -61,6 +61,8 @@ class MechMenu(QMenu):
             mec = samples.CCO()
         elif demo == 'dCK+B':
             mec = samples.CCOB()
+        elif demo == 'dCK+D':
+            mec = samples.CCOD()
         elif demo == 'CO':
             mec = samples.CO()
         elif demo == 'FCC':
@@ -645,12 +647,14 @@ class DemoMecDlg(QDialog):
         self.CH82.setChecked(True)
         self.dCK = QRadioButton("&del Castillo - Katz")
         self.dCKB = QRadioButton("&del Castillo - Katz + block")
+        self.dCKD = QRadioButton("&del Castillo - Katz + desensitisation")
         self.CO = QRadioButton("&C(losed)-O(pen)")
         self.FCC = QRadioButton("&Fully connected cycle")
         
         layoutMain.addWidget(self.CH82)
         layoutMain.addWidget(self.dCK)
         layoutMain.addWidget(self.dCKB)
+        layoutMain.addWidget(self.dCKD)
         layoutMain.addWidget(self.CO)
         layoutMain.addWidget(self.FCC)
 
@@ -674,6 +678,8 @@ class DemoMecDlg(QDialog):
             mec = 'dCK'
         elif self.dCKB.isChecked():
             mec = 'dCK+B'
+        elif self.dCKD.isChecked():
+            mec = 'dCK+D'
         elif self.FCC.isChecked():
             mec = 'FCC'
         return mec
