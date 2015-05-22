@@ -1673,7 +1673,7 @@ def scn_write(intervals, amplitudes, flags, calfac=1.0, ffilt=-1.0, rms=0.0,
     # Write header.
     fout = open(filename, 'wb')
     fout.write(struct.pack('iii', iscanver, ioffset, nint))
-    fout.write(title + expdate + tapeID)
+    fout.write(bytes(title + expdate + tapeID, 'UTF-8'))
     fout.write(struct.pack('ififff', ipatch, Emem, 0, avamp, rms, ffilt))
     fout.write(struct.pack('fff', calfac, treso, tresg))
 
@@ -1682,6 +1682,23 @@ def scn_write(intervals, amplitudes, flags, calfac=1.0, ffilt=-1.0, rms=0.0,
     fout.write(struct.pack('h'*nint, *amplitudes))
     fout.write(struct.pack('b'*nint, *flags))
     fout.close()
+    
+def convert_clampfit_to_scn(fname):
+    """
+    Convert
+    """
+    record = np.genfromtxt(fname, skip_header=1, delimiter=',')
+    for i in range(len(record)):
+        if np.isnan(record[i, 0]):
+            record[i, 2] = 0
+            record[i, 8] = record[i+1, 4] - record[i-1, 5]
+    intervals = record[:, 8]
+    amplitudes = record[:, 2].astype(int)
+    flags = np.zeros((len(intervals)), dtype='b')
+    to_filename = fname[:-3] + 'scn'
+    scn_write(intervals, amplitudes, flags,
+        filename=to_filename, type='Converted Clampfit ideal')
+    return to_filename
 
 def abf_read_header (filename, debug=1):
     """

@@ -27,11 +27,11 @@ class SCRecord(object):
             self._set_resolution(tres)
         else:
             self._set_resolution(np.amin(self.itint))
-        if tcrit:
-            self._set_tcrit(tcrit)
-        else:
+        if tcrit == None:
             self._set_tcrit(np.amax(self.itint))
-        self.set_chs(tcrit)
+        else:
+            self._set_tcrit(tcrit)
+        self.set_chs(self._tcrit)
         self.conc = conc
         self.onechan = onechan # opening from one channel only?
         self.badend = badend # bad shutting can terminate burst?
@@ -599,3 +599,120 @@ class Bursts(object):
                 long.add_burst(b)
         return long
 
+
+class PooledRecords(object):
+    """
+    A pool of single channel records of type SCRecord.
+    """
+
+    def __init__(self, records):
+        """
+        Parameters
+        ----------
+        records : a list of SCRecord type objects
+        """
+        self.recs = records
+        
+    
+#TODO: move next 5 functions into Pooledrecords class
+
+def all_popen(recs, min_op):
+    all_popen = []
+    for record in recs:
+        clusters = record.bursts.get_long(min_op)
+        all_popen.extend(clusters.get_popen_list())
+    return all_popen
+
+def all_mean_ampl(recs, min_op):
+    malist = []
+    for record in recs:
+        clusters = record.bursts.get_long(min_op)
+        malist.extend(clusters.get_mean_ampl_list())
+    return malist
+
+def opav(recs, min_op):
+    opav = []
+    for record in recs:
+        clusters = record.bursts.get_long(min_op)
+        opav.extend(clusters.get_opening_length_mean_list())
+    return opav
+
+def all_op_lists(recs, min_op):
+    all = []
+    for record in recs:
+        clusters = record.bursts.get_long(min_op)
+        all.extend(clusters.get_op_lists())
+    return all
+
+def all_sh_lists(recs, min_op):
+    all = []
+    for record in recs:
+        clusters = record.bursts.get_long(min_op)
+        all.extend(clusters.get_sh_lists())
+    return all
+
+
+def moving_average(x, n):
+    """
+    Compute an n period moving average.
+    """
+    x = np.asarray(x)
+    weights = np.ones(n)
+    weights /= weights.sum()
+    a =  np.convolve(x, weights, mode='full')[:len(x)]
+    a[:n] = a[n]
+    return a
+
+def prepare_hist(X, tres):
+    """
+
+    """
+
+    n = len(X)
+    xmax = max(X)
+    xstart = tres #* 1000    # histogramm starts at
+
+    # Defines bin width and number of bins.
+    # Number of bins/decade
+    if (n <= 300): nbdec = 5
+    if (n > 300) and (n <= 1000): nbdec = 8
+    if (n > 1000) and (n <= 3000): nbdec = 10
+    if (n > 3000): nbdec = 12
+
+    # round down minimum value, so get Xmin for distribution
+    # round up maximum value, so get Xmax for distribution
+    #xmin1 = int(xmin - 1)
+    #xmax1 = int(xmax + 1)
+    
+    xend = 1. + xmax - math.fmod(xmax, 1.)    # last x value
+    dx = math.exp(math.log(10.0) / float(nbdec))
+    nbin = 1 + int(math.log(xend / xstart) / math.log(dx))
+
+    # Make bins.
+    xaxis = np.zeros(nbin+1)
+    xaxis[0] = xstart
+    # For log scale.
+    for i in range(1, nbin+1):
+        xaxis[i] = xstart * (dx**i)
+
+    # Sorts data into bins.
+    freq = np.zeros(nbin)
+    for i in range(n):
+        for j in range(nbin):
+            if X[i] >= xaxis[j] and X[i] < xaxis[j+1]:
+                freq[j] = freq[j] + 1
+
+    xout = np.zeros((nbin + 1) * 2)
+    yout = np.zeros((nbin + 1) * 2 - 1)
+
+    xout[0] = xaxis[0]
+    yout[0] = 0
+    for i in range(0, nbin):
+        xout[2*i+1] = xaxis[i]
+        xout[2*i+2] = xaxis[i+1]
+        yout[2*i+1] = freq[i]
+        yout[2*i+2] = freq[i]
+    xout[-1] = xaxis[-1]
+    #yout[-1] = 0
+
+    return xout, yout, dx
