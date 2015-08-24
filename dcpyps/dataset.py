@@ -8,6 +8,14 @@ class SCRecord(object):
     """
     A wrapper over a list of time intervals from idealised single channel
     record.
+    
+    iprops- numpy array of integer*1- holds properties of ith duration and amplitude
+    (integer*1 has range -128 to +127 (bit 7 set gives -128; can use bits 0-6)
+    0 = all OK;
+    1 = amplitude dubious = bit 0;
+    2 = amplitude fixed = bit 1;
+    4 = amplitude of opening constrained (see fixamp) = bit 2;
+    8 = duration unusable = bit 3; etc
     """
 
     def __init__(self, filenames=None, conc=None, tres=0.0, tcrit=None,
@@ -74,7 +82,7 @@ class SCRecord(object):
             self.ropt.pop(0)
 
         n = 1
-        oint, oamp, oopt = self.rint[0], self.ramp[0], self.ropt[0]
+        oint, oamp, oopt = self.rint[0], self.ramp[0] * self.rint[0], self.ropt[0]
 #        print len(self.rint)
         while n < len(self.rint):
 #            print n, 'int=', self.rint[n], 'amp=', self.ramp[n]
@@ -159,30 +167,18 @@ class SCRecord(object):
         be bad (in which case all group will be bad).
         """
 
-        for i in range(len(self.itint)):
-            if self.itint[i] < 0: self.iprops[i] = 8
+        # Find negative intervals and set them unusable
+        self.iprops[self.itint < 0] = 8
         # Find first resolvable and usable interval.
-        n = 0
-        firstResolved = False
-        if ((self.itint[n] > self._tres) and (self.iprops[n] < 8)):
-            firstResolved = True
-        else:
-            n += 1
-
-        while not firstResolved:
-            if ((self.itint[n] > self._tres) and (self.iprops[n] < 8) and
-#                (self.iampl[n] != 0) and
-                (self.itint[n-1] > self._tres) and (self.iprops[n-1] < 8)):
-                    firstResolved = True # first interval is usable and resolvable
-            else:
-                n += 1
+        n = np.intersect1d(np.where(self.itint > self._tres),
+            np.where(self.iprops < 8))[0]
 
         rtint, rampl, rprops = [], [], []
         ttemp, otemp = self.itint[n], self.iprops[n]
         if (self.iampl[n] == 0):
             atemp = 0
-        elif self.record_type == 'simulated':
-            atemp = self.iampl[n]
+#        elif self.record_type == 'simulated':
+#            atemp = self.iampl[n]
         else:
             atemp = self.iampl[n] * self.itint[n]
         isopen = True if (self.iampl[n] != 0) else False
@@ -194,10 +190,11 @@ class SCRecord(object):
 
                 if (len(self.itint) == n + 1) and self.iampl[n] == 0 and isopen:
                     rtint.append(ttemp)
-                    if self.record_type == 'simulated':
-                        rampl.append(atemp)
-                    else:
-                        rampl.append(atemp / ttemp)
+#                    if self.record_type == 'simulated':
+#                        rampl.append(atemp)
+#                    else:
+#                        rampl.append(atemp / ttemp)
+                    rampl.append(atemp / ttemp)
                     rprops.append(otemp)
                     isopen = False
                     ttemp = self.itint[n]

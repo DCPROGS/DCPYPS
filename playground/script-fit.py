@@ -112,7 +112,7 @@ while not success:
     result = minimize(dcprogslik, theta, method='Nelder-Mead', callback=printiter,
         options={'xtol':1e-3, 'ftol':1e-3, 'maxiter': 5000, 'maxfev': 10000,
         'disp': True})
-    print 'result=', result
+    print ('result=', result)
     if result.success:
         success = True
     else:
@@ -121,9 +121,9 @@ while not success:
 
 print ("\nDCPROGS Fitting finished: %4d/%02d/%02d %02d:%02d:%02d\n"
         %time.localtime()[0:6])
-print 'time in simplex=', time.clock() - start
-print '\n\nresult='
-print result
+print ('time in simplex=', time.clock() - start)
+print ('\n\nresult=')
+print (result)
 
 print ('\n Final log-likelihood = {0:.6f}'.format(-result.fun))
 print ('\n Number of iterations = {0:d}'.format(result.nit))
