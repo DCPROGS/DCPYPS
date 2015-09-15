@@ -142,8 +142,9 @@ class SCRecord(object):
         #TODO: enable taking several scan files and join in a single record.
         # Just a single file could be loaded at present.
         ioffset, nint, calfac, header = dcio.scn_read_header(filenames[0])
-        self.itint, self.iampl, self.iprops = dcio.scn_read_data(
+        self.itint, iampl, self.iprops = dcio.scn_read_data(
             filenames[0], header)
+        self.iampl = iampl.astype(float) * calfac
         if header['iscanver'] == -103:
             self.record_type = 'simulated'
             
