@@ -144,6 +144,7 @@ class SCRecord(object):
         ioffset, nint, calfac, header = dcio.scn_read_header(filenames[0])
         self.itint, self.iampl, self.iprops = dcio.scn_read_data(
             filenames[0], header)
+        self.iampl *= calfac
         if header['iscanver'] == -103:
             self.record_type = 'simulated'
             
