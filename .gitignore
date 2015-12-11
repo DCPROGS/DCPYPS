@@ -24,6 +24,7 @@ syntax: glob
 *.xls
 
 __pycache__/
+samples/__pycache__/
 
 .DS_Store
 .AppleDouble
