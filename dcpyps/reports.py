@@ -38,13 +38,13 @@ class FitReportHTML():
             self.f.write('<br>######### FITTED RATE CONSTANTS #########################')
         else:
             self.f.write('<br>######### LOADED RATE CONSTANTS #########################')
-        self.f.write('<br>Mechanism: ' + mec.mtitle + '<br>')
-        self.f.write('Rates: ' + mec.rtitle + '<br><br>')
+        self.f.write('<br>Mechanism: ' + str(mec.mtitle) + '<br>')
+        self.f.write('Rates: ' + str(mec.rtitle) + '<br><br>')
         self.f.write('Values of rate constants [1/sec]:<br>')
         self.f.write('<table border="0">')
         for rate in mec.Rates:
-            self.f.write('<tr>' + '<td>From ' + rate.State1.name + '</td><td>to ' +
-                         rate.State2.name + '</td><td>' + rate.name + 
+            self.f.write('<tr>' + '<td>From ' + str(rate.State1.name) + '</td><td>to ' +
+                         str(rate.State2.name) + '</td><td>' + str(rate.name) + 
                          '</td><td>{0:.5g}</td></tr>'.format(rate.unit_rate()))
         self.f.write('</table><br>')
         
