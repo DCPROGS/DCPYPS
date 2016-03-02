@@ -540,12 +540,14 @@ class Mechanism(object):
 
     def __repr__(self):
         #TODO: need nice table format
-        str_repr = '\n\n\nclass dcpyps.Mechanism'
+        str_repr = '\nclass dcpyps.Mechanism'
         str_repr += '\nValues of unit rates [1/sec]:'
+        id = 0
         for rate in self.Rates:
-            str_repr += ('\nFrom ' + rate.State1.name + '  \tto ' +
+            str_repr += ('\n' + str(id) + '\tFrom ' + rate.State1.name + '  \tto ' +
                          rate.State2.name + '    \t' + rate.name +
                          '   \t' + str(rate.unit_rate()))
+            id += 1
                          
         for state in self.States:
             if state.statetype=='A':
@@ -561,7 +563,7 @@ class Mechanism(object):
 
         str_repr += ('\n\nNumber of cycles = {0:d}'.format(len(self.Cycles)))
         for i in range(len(self.Cycles)):
-            str_repr += ('\nCycle {0:d} is formed of states: '.format(i+1))
+            str_repr += ('\nCycle {0:d} is formed of states: '.format(i))
             for j in range(len(self.Cycles[i].states)):
                 str_repr += (self.Cycles[i].states[j] + '  ')
             fprod, bprod = self.check_mr(self.Cycles[i])
@@ -669,6 +671,8 @@ class Mechanism(object):
                 args = self.Rates[i].constrain_args
                 func = self.Rates[i].constrain_func
                 self.Rates[i].rateconstants = func(self.Rates[args[0]].rateconstants, args[1])
+                
+        self.update_mr()
                 
     def set_mr(self, mr, nrate, ncycle=0):
         """
