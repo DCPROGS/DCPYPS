@@ -17,8 +17,8 @@ def xlog_hist_data(X, tres, shut=True, unit='s'):
     plt.ylabel('Square root of frequency density')
     plt.xscale('log')
     
-def xlog_hist_data_fit(tres, X=None, pdf=None, ipdf=None, shut=True, 
-                       tcrit=None, unit='s'):
+def xlog_hist_data_fit(tres, X=None, pdf=None, ipdf=None, iscale=None, 
+                       shut=True, tcrit=None, unit='s'):
     """
     Plot dwell time histogram and predicted pdfs (ideal and corrected for the 
     missed events) in log x and square root y.
@@ -33,17 +33,17 @@ def xlog_hist_data_fit(tres, X=None, pdf=None, ipdf=None, shut=True,
     if pdf and ipdf:
         if shut:
             t = np.logspace(math.log10(tres), math.log10(tcrit), 512)
-            plt.plot(t, np.sqrt(t * ipdf(t) * scale * 2.30259), '--r', 
+            plt.plot(t, np.sqrt(t * ipdf(t) * scale * iscale), '--r', 
                 label='Ideal distribution')
             plt.plot(t, np.sqrt(t * pdf(t) * scale), '-b', 
                 label='Corrected distribution')
             t = np.logspace(math.log10(tcrit), math.log10(max(X) *2), 512)
             plt.plot(t, np.sqrt(t * pdf(t) * scale), '--b')
-            plt.plot(t, np.sqrt(t * ipdf(t) * scale * 2.30259), '--r')
+            plt.plot(t, np.sqrt(t * ipdf(t) * scale * iscale), '--r')
             plt.axvline(x=tcrit, color='g')
         else:
             t = np.logspace(math.log10(tres), math.log10(2 * max(X)), 512)
-            plt.plot(t, np.sqrt(t * ipdf(t) * scale), '--r',
+            plt.plot(t, np.sqrt(t * ipdf(t) * scale * iscale), '--r',
                 label='Ideal distribution')
             plt.plot(t, np.sqrt(t * pdf(t) * scale), '-b', 
                 label='Corrected distribution')

@@ -537,6 +537,8 @@ class Mechanism(object):
         for d in range(self.Q.shape[0]):
             self.Q[d,d] = 0
             self.Q[d,d] = -np.sum(self.Q[d])
+            
+        self.update_submat()
 
     def __repr__(self):
         #TODO: need nice table format
