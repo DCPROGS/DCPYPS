@@ -1,59 +1,84 @@
-
+"""
+Collection of functions useful for plotting in DCPYPS.
+"""
 __author__ = "Remis"
 __date__ = "$22-Feb-2016 09:13:22$"
 
 import math
 import numpy as np
-import matplotlib.pyplot as plt
 
-def xlog_hist_data(X, tres, shut=True, unit='s'):
+def xlog_hist_data(ax, X, tres, shut=True, unit='s'):
     """
     Plot dwell time histogram in log x and square root y.
     """
-    xout, yout, dx = prepare_xlog_hist(X, tres)
-    plt.plot(xout, np.sqrt(yout))
-    plt.xlabel('Apparent {0} periods ({1})'.
-        format('shut' if shut else 'open', unit))
-    plt.ylabel('Square root of frequency density')
-    plt.xscale('log')
     
-def xlog_hist_data_fit(tres, X=None, pdf=None, ipdf=None, iscale=None, 
-                       shut=True, tcrit=None, unit='s'):
+    xout, yout, dx = prepare_xlog_hist(X, tres)
+    ax.semilogx(xout, np.sqrt(yout))
+    ax.set_xlabel('Apparent {0} periods ({1})'.
+        format('shut' if shut else 'open', unit))
+    ax.set_ylabel('Square root of frequency density')
+    
+def xlog_hist_HJC_fit(ax, tres, X=None, pdf=None, ipdf=None, iscale=None, 
+                       shut=True, tcrit=None, legend=True, unit='s'):
     """
     Plot dwell time histogram and predicted pdfs (ideal and corrected for the 
     missed events) in log x and square root y.
     """
 
-    # Plot apparent shut period histogram
+    scale = 1.0
     if X:
         tout, yout, dt = prepare_xlog_hist(X, tres)
-        plt.plot(tout, np.sqrt(yout))
-        scale = len(X) * math.log10(dt) * 2.30259
+        ax.semilogx(tout, np.sqrt(yout))
+        scale = len(X) * math.log10(dt) * math.log(10)
         
     if pdf and ipdf:
         if shut:
             t = np.logspace(math.log10(tres), math.log10(tcrit), 512)
-            plt.plot(t, np.sqrt(t * ipdf(t) * scale * iscale), '--r', 
+            ax.semilogx(t, np.sqrt(t * ipdf(t) * scale * iscale), '--r', 
                 label='Ideal distribution')
-            plt.plot(t, np.sqrt(t * pdf(t) * scale), '-b', 
+            ax.semilogx(t, np.sqrt(t * pdf(t) * scale), '-b', 
                 label='Corrected distribution')
             t = np.logspace(math.log10(tcrit), math.log10(max(X) *2), 512)
-            plt.plot(t, np.sqrt(t * pdf(t) * scale), '--b')
-            plt.plot(t, np.sqrt(t * ipdf(t) * scale * iscale), '--r')
-            plt.axvline(x=tcrit, color='g')
+            ax.semilogx(t, np.sqrt(t * pdf(t) * scale), '--b')
+            ax.semilogx(t, np.sqrt(t * ipdf(t) * scale * iscale), '--r')
+            ax.axvline(x=tcrit, color='g')
         else:
             t = np.logspace(math.log10(tres), math.log10(2 * max(X)), 512)
-            plt.plot(t, np.sqrt(t * ipdf(t) * scale * iscale), '--r',
+            ax.semilogx(t, np.sqrt(t * ipdf(t) * scale * iscale), '--r',
                 label='Ideal distribution')
-            plt.plot(t, np.sqrt(t * pdf(t) * scale), '-b', 
+            ax.semilogx(t, np.sqrt(t * pdf(t) * scale), '-b', 
                 label='Corrected distribution')
                 
-    plt.xlabel('Apparent {0} periods ({1})'.
+    ax.set_xlabel('Apparent {0} periods ({1})'.
         format('shut' if shut else 'open', unit))
-    plt.ylabel('Square root of frequency density')
-    plt.legend(loc=(1 if shut else 3))
-    plt.xscale('log')
+    ax.set_ylabel('Square root of frequency density')
+    if legend: ax.legend(loc=(1 if shut else 3))
+    
+def xlog_hist_EXP_fit(ax, tres, X=None, pdf=None, pars=None, shut=True, 
+                      unit='s'):
+    """
+    Plot dwell time histogram and multi-exponential pdf with single 
+    components in log x and square root y.
+    """
 
+    scale = 1.0
+    if X:
+        tout, yout, dt = prepare_xlog_hist(X, tres)
+        ax.semilogx(tout, np.sqrt(yout))
+        scale = len(X) * math.log10(dt) * math.log(10)
+        
+    t = np.logspace(math.log10(tres), math.log10(2 * max(X)), 512)
+    ax.plot(t, np.sqrt(scale * t * pdf(pars, t)), '-b')
+    tau = np.array(pars[0:][::2])
+    area = np.array(pars[1:][::2])
+    area = np.append(area, 1 - np.sum(area))
+    for ta, ar in zip(tau, area):
+        ax.plot(t, np.sqrt(scale * t * (ar / ta) * np.exp(-t / ta)), '--b')
+        
+    ax.set_xlabel('Apparent {0} periods ({1})'.
+        format('shut' if shut else 'open', unit))
+    ax.set_ylabel('Square root of frequency density')
+    
 def prepare_xlog_hist(X, tres):
     """
     Prepare data points for x-log histogram to plot in matplotlib

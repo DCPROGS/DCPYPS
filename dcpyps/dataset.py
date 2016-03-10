@@ -179,8 +179,8 @@ class SCRecord(object):
         ttemp, otemp = self.itint[n], self.iprops[n]
         if (self.iampl[n] == 0):
             atemp = 0
-#        elif self.record_type == 'simulated':
-#            atemp = self.iampl[n]
+        elif self.record_type == 'simulated':
+            atemp = self.iampl[n]
         else:
             atemp = self.iampl[n] * self.itint[n]
         isopen = True if (self.iampl[n] != 0) else False
