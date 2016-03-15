@@ -55,25 +55,32 @@ def xlog_hist_HJC_fit(ax, tres, X=None, pdf=None, ipdf=None, iscale=None,
     if legend: ax.legend(loc=(1 if shut else 3))
     
 def xlog_hist_EXP_fit(ax, tres, X=None, pdf=None, pars=None, shut=True, 
-                      unit='s'):
+                      tcrit=None, unit='s'):
     """
     Plot dwell time histogram and multi-exponential pdf with single 
     components in log x and square root y.
     """
+    
+    theta = np.asarray(pars)
+    tau, area = np.split(theta, [int(math.ceil(len(theta) / 2))])
+    area = np.append(area, 1 - np.sum(area))
 
     scale = 1.0
     if X:
         tout, yout, dt = prepare_xlog_hist(X, tres)
         ax.semilogx(tout, np.sqrt(yout))
-        scale = len(X) * math.log10(dt) * math.log(10)
+        scale = (len(X) * math.log10(dt) * math.log(10) *
+            (1 / np.sum(area * np.exp(-tres / tau))))
         
     t = np.logspace(math.log10(tres), math.log10(2 * max(X)), 512)
     ax.plot(t, np.sqrt(scale * t * pdf(pars, t)), '-b')
-    tau = np.array(pars[0:][::2])
-    area = np.array(pars[1:][::2])
-    area = np.append(area, 1 - np.sum(area))
     for ta, ar in zip(tau, area):
         ax.plot(t, np.sqrt(scale * t * (ar / ta) * np.exp(-t / ta)), '--b')
+        
+    if tcrit is not None:
+        tcrit = np.asarray(tcrit)
+        for tc in tcrit:
+            ax.axvline(x=tc, color='g')
         
     ax.set_xlabel('Apparent {0} periods ({1})'.
         format('shut' if shut else 'open', unit))
