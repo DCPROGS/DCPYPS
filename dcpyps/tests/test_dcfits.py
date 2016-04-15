@@ -87,3 +87,27 @@ def test_SingleFitSession():
     assert_almost_equal(fsession.Llimits[0][1], 16.001557908087079, delta = 1e-6)
     assert_almost_equal(fsession.Llimits[1][0], 1.4776049294397993, delta = 1e-6)
     assert_almost_equal(fsession.Llimits[1][1], 8.9233105381283568, delta = 1e-6)
+    
+def test_LikelihoodIntervals():
+    from dcpyps.dcfits.fitting import LikelihoodIntervals
+    LI = LikelihoodIntervals()
+    
+def test_ApproximateSD():
+    X = np.array([1., 1., 2., 2., 3., 3., 4., 4., 5., 5.])
+    Y = np.array([3.17, 13.25, 19.8, 14.18, 11.43, 25.85, 13.81, 25.49,
+                  26.94, 38.86])
+    from dcpyps.dcfits.data import XYDataSet
+    dataset = XYDataSet()
+    dataset.from_columns(X, Y)
+    from dcpyps.dcfits.equations import Linear
+    equation = Linear('Linear')
+    pars = np.array([3., 5.])
+    from dcpyps.dcfits.simplex import Simplex
+    from dcpyps.dcfits.stats import SSD
+    simp = Simplex(SSD, pars, *(equation.to_fit, (dataset.X, dataset.Y, dataset.W)))
+    result = simp.run()
+    equation.theta = result.rd['x']
+    from dcpyps.dcfits.fitting import ApproximateSD
+    ASD = ApproximateSD(equation, dataset)
+    assert_almost_equal(ASD.approximateSD[0], 5.2168715720984222, delta = 1e-12)
+    assert_almost_equal(ASD.approximateSD[1], 1.5729459621937478, delta = 1e-12)

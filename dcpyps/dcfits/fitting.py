@@ -10,56 +10,42 @@ from dcpyps.dcfits.stats import approximateSD
 from dcpyps.dcfits.stats import tvalue
 
 class SingleFitSession(object):
-    def __init__(self, dataset, equation, output=sys.stdout):
+    def __init__(self, dataset, equation):
         """
         """
-        self.output = output
-        self.data = dataset
-        self.eq = equation
-        self.eq.propose_guesses(self.data)
-        self.text = '\n\tFitting session for ' + self.data.title + ' initialised...'
-        self.output.write(self.text)
+        self.dataset = dataset
+        self.XYW = (self.dataset.X, self.dataset.Y, self.dataset.W)
+        self.equation = equation
+        self.equation.propose_guesses(self.dataset)
         
     def fit(self):
-        # Least square fitting
-        #coeffs, cov, dict, mesg, ier = optimize.leastsq(residuals, self.eq.theta,
-        #    args=(self.eq, self.data.X, self.data.Y, self.data.W), full_output=1)
-        #coeffs, smin = simplex(SSD, self.eq.theta, self.eq, self.data.X, self.data.Y, self.data.W)
-        
-        simp = Simplex(SSD, self.eq.theta, *(self.eq.to_fit, (self.data.X, self.data.Y, self.data.W)))
+        simp = Simplex(SSD, self.equation.theta, *(self.equation.to_fit, self.XYW))
         result = simp.run()
-        self.eq.theta = result.rd['x']
+        self.equation.theta = result.rd['x']
        
-    def calculate_errors(self):
-
-        self.Smin, self.eq.theta = SSD(self.eq.theta, (self.eq.to_fit,
-            (self.data.X, self.data.Y, self.data.W)))
+    def calculate_errors(self):        
+        ASD = ApproximateSD(self.equation, self.dataset)
         
-        #print '\n SSD \n', Smin
-        #hes = errors.hessian(coeffs, eq, set)
-        #print '\n Observed information matrix = \n', hes
-        self.covar = covariance_matrix(self.eq.theta, self.eq.to_fit, (self.data.X, self.data.Y, self.data.W))
-        #print '\n Covariance matrix = \n', covar
-        self.correl = correlation_matrix(self.covar)
-        self.aproxSD = approximateSD(self.eq.theta, self.eq.to_fit, (self.data.X, self.data.Y, self.data.W))
-        self.CVs = 100.0 * self.aproxSD / self.eq.theta
-        self.kfit = len(np.nonzero(np.invert(self.eq.fixed))[0])
-        self.ndf = self.data.size() - self.kfit
+        self.Smin, self.equation.theta = SSD(self.equation.theta, (self.equation.to_fit,
+            self.XYW))
+        self.kfit = len(np.nonzero(np.invert(self.equation.fixed))[0])
+        self.ndf = self.dataset.size() - self.kfit
         self.var = self.Smin / self.ndf
-        self.Sres, self.Lmax = sqrt(self.var), -SSDlik(self.eq.theta, self.eq.to_fit, (self.data.X, self.data.Y, self.data.W))
+        self.Sres, self.Lmax = sqrt(self.var), -SSDlik(self.equation.theta, self.equation.to_fit, self.XYW)
 
-        tval = tvalue(self.ndf)
-        self.m = tval * tval / 2.0
+
+        self.m = tvalue(self.ndf) ** 2 / 2.0
         self.clim = sqrt(2. * self.m)
         self.Lcrit = self.Lmax - self.m
-        self.Llimits = lik_intervals(self.eq.theta, self.aproxSD, self.eq, (self.data.X, self.data.Y, self.data.W))
+        
+        self.Llimits = lik_intervals(self.equation.theta, ASD.approximateSD, self.equation, self.XYW)
         
         #self.output.write(self.string_estimates())
         #self.output.write(self.string_liklimits())
         
     def string_estimates(self):
         j = 0
-        str = 'Number of point fitted = {0:d}'.format(self.data.size())
+        str = 'Number of point fitted = {0:d}'.format(self.dataset.size())
         
         str += '\nNumber of parameters estimated = {0:d}'.format(self.kfit)
         str += '\nDegrees of freedom = {0:d}'.format(self.ndf)
@@ -110,6 +96,117 @@ class SingleFitSession(object):
             else:
                 str += '\t  (fixed)'
         return str
+    
+class ApproximateSD(object):
+    def __init__(self, equation, dataset):
+        self.theta = equation.theta
+        self.equation = equation
+        self.func = equation.to_fit
+        self.dataset = dataset
+        self.XYW = (dataset.X, dataset.Y, dataset.W)
+        self.__calculate_all()
+        
+    def __calculate_all(self):
+        self.covariance = covariance_matrix(self.theta, self.func, self.XYW)
+        self.correlations = correlation_matrix(self.covariance)
+        self.approximateSD = approximateSD(self.theta, self.func, self.XYW)
+        self.CVs = 100.0 * self.approximateSD / self.theta
+        
+    def __optimal_deltas(self):
+        """ """
+
+        Lcrit = 1.005 * -0.5 * SSD(self.theta, (self.func, self.XYW))[0]
+        deltas = 0.1 * self.theta
+        L = -0.5 * SSD(self.theta + deltas, (self.func, self.XYW))[0]
+        if L > Lcrit:
+            count = 0
+            while L > Lcrit and count < 100:
+                deltas *= 2
+                L = -0.5 * SSD(self.theta + deltas, (self.func, self.XYW))[0]
+                count += 1
+        elif L < Lcrit:
+            count = 0
+            while L < Lcrit and count < 100:
+                deltas *= 0.5
+                L = -0.5 * SSD(self.theta + deltas, (self.func, self.XYW))[0]
+                count += 1
+        return deltas
+
+    def __hessian(self):
+        """
+        """
+        hessian = np.zeros((self.theta.size, self.theta.size))
+        deltas = self.__optimal_deltas()
+        # Diagonal elements of Hessian
+        coe11 = np.array([self.theta.copy(), ] * self.theta.size) + np.diag(deltas)
+        coe33 = np.array([self.theta.copy(), ] * self.theta.size) - np.diag(deltas)
+        for i in range(self.theta.size):
+            hessian[i, i] = ((SSD(coe11[i], (self.func, self.XYW))[0] - 
+                2.0 * SSD(self.theta, (self.func, self.XYW))[0] +
+                SSD(coe33[i], (self.func, self.XYW))[0]) / (deltas[i]  ** 2))
+        # Non diagonal elements of Hessian
+        for i in range(self.theta.size):
+            for j in range(self.theta.size):
+                coe1, coe2, coe3, coe4 = self.theta.copy(), self.theta.copy(), self.theta.copy(), self.theta.copy()
+                if i != j:                
+                    coe1[i] += deltas[i]
+                    coe1[j] += deltas[j]
+                    coe2[i] += deltas[i]
+                    coe2[j] -= deltas[j]
+                    coe3[i] -= deltas[i]
+                    coe3[j] += deltas[j]
+                    coe4[i] -= deltas[i]
+                    coe4[j] -= deltas[j]
+                    hessian[i, j] = ((
+                        SSD(coe1, (self.func, self.XYW))[0] -
+                        SSD(coe2, (self.func, self.XYW))[0] -
+                        SSD(coe3, (self.func, self.XYW))[0] +
+                        SSD(coe4, (self.func, self.XYW))[0]) /
+                        (4 * deltas[i] * deltas[j]))
+        return 0.5 * hessian
+
+    def covariance_matrix(self):
+        """ """
+        cov = nplin.inv(self.__hessian(self.theta, self.func, self.XYW))
+        if self.dataset.weightmode == 1:
+            errvar = SSD(self.theta, (self.func, self.XYW))[0] / (self.XYW[0].size - self.theta.size)
+        else:
+            errvar = 1.0
+        return cov * errvar
+
+    def approximateSD(self):
+        """
+        Calculate approximate standard deviation of the estimates from the inverse
+        of the Hessian matrix ('observed information matrix').
+
+        Parameters
+        ----------
+        theta : array_like, shape (k, )
+            Initial guess.
+        func : callable func(x, args)
+            The objective function to be minimized.
+        args : object
+            Extra arguments passed to func.
+
+        Returns
+        -------
+        approximateSD : ndarray, shape (k,)
+            Approximate SD.
+        """
+        cov = self.covariance_matrix(self.theta, self.func, self.XYW)
+        return np.sqrt(cov.diagonal())
+
+    def correlation_matrix(self, covar):
+        correl = np.zeros((len(covar),len(covar)))
+        for i1 in range(len(covar)):
+            for j1 in range(len(covar)):
+                correl[i1,j1] = (covar[i1,j1] / 
+                    np.sqrt(np.multiply(covar[i1,i1],covar[j1,j1])))
+        return correl
+
+class LikelihoodIntervals(object):
+    def __init__(self):
+        pass
 
 class MultipleFitSession(object):
     def __init__(self, output=sys.stdout):
