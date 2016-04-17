@@ -1,12 +1,12 @@
 import sys
-from math import sqrt#, fabs
+import copy
+from math import sqrt, log, pi, fabs
+from scipy import optimize
 import numpy as np
+from numpy import linalg as nplin
 
 from dcpyps.dcfits.simplex import Simplex
-from dcpyps.dcfits.stats import SSD, SSDlik, lik_intervals
-from dcpyps.dcfits.stats import covariance_matrix
-from dcpyps.dcfits.stats import correlation_matrix
-from dcpyps.dcfits.stats import approximateSD
+from dcpyps.dcfits.stats import SSD , SSDlik
 from dcpyps.dcfits.stats import tvalue
 
 class SingleFitSession(object):
@@ -24,24 +24,7 @@ class SingleFitSession(object):
         self.equation.theta = result.rd['x']
        
     def calculate_errors(self):        
-        ASD = ApproximateSD(self.equation, self.dataset)
-        
-        self.Smin, self.equation.theta = SSD(self.equation.theta, (self.equation.to_fit,
-            self.XYW))
-        self.kfit = len(np.nonzero(np.invert(self.equation.fixed))[0])
-        self.ndf = self.dataset.size() - self.kfit
-        self.var = self.Smin / self.ndf
-        self.Sres, self.Lmax = sqrt(self.var), -SSDlik(self.equation.theta, self.equation.to_fit, self.XYW)
-
-
-        self.m = tvalue(self.ndf) ** 2 / 2.0
-        self.clim = sqrt(2. * self.m)
-        self.Lcrit = self.Lmax - self.m
-        
-        self.Llimits = lik_intervals(self.equation.theta, ASD.approximateSD, self.equation, self.XYW)
-        
-        #self.output.write(self.string_estimates())
-        #self.output.write(self.string_liklimits())
+        self.errors = EstimateErrors(self.equation, self.dataset)
         
     def string_estimates(self):
         j = 0
@@ -97,7 +80,7 @@ class SingleFitSession(object):
                 str += '\t  (fixed)'
         return str
     
-class ApproximateSD(object):
+class EstimateErrors(object):
     def __init__(self, equation, dataset):
         self.theta = equation.theta
         self.equation = equation
@@ -107,10 +90,12 @@ class ApproximateSD(object):
         self.__calculate_all()
         
     def __calculate_all(self):
-        self.covariance = covariance_matrix(self.theta, self.func, self.XYW)
-        self.correlations = correlation_matrix(self.covariance)
-        self.approximateSD = approximateSD(self.theta, self.func, self.XYW)
-        self.CVs = 100.0 * self.approximateSD / self.theta
+        #self.covariance = self.covariance_matrix()
+        self.approximateSD = self.approximateSD()
+        self.correlations = self.correlation_matrix(self.covariance)
+        self.variances()
+        self.__max_crit_likelihoods()
+        self.Llimits = self.lik_intervals()
         
     def __optimal_deltas(self):
         """ """
@@ -167,7 +152,7 @@ class ApproximateSD(object):
 
     def covariance_matrix(self):
         """ """
-        cov = nplin.inv(self.__hessian(self.theta, self.func, self.XYW))
+        cov = nplin.inv(self.__hessian())
         if self.dataset.weightmode == 1:
             errvar = SSD(self.theta, (self.func, self.XYW))[0] / (self.XYW[0].size - self.theta.size)
         else:
@@ -193,8 +178,8 @@ class ApproximateSD(object):
         approximateSD : ndarray, shape (k,)
             Approximate SD.
         """
-        cov = self.covariance_matrix(self.theta, self.func, self.XYW)
-        return np.sqrt(cov.diagonal())
+        self.covariance = self.covariance_matrix()
+        return np.sqrt(self.covariance.diagonal())
 
     def correlation_matrix(self, covar):
         correl = np.zeros((len(covar),len(covar)))
@@ -203,10 +188,87 @@ class ApproximateSD(object):
                 correl[i1,j1] = (covar[i1,j1] / 
                     np.sqrt(np.multiply(covar[i1,i1],covar[j1,j1])))
         return correl
+        
+    def variances(self):
+        self.kfit = self.theta.size
+        self.ndf = self.dataset.size() - self.kfit
+        self.Smin, self.equation.theta = SSD(self.equation.theta, (self.func,
+            self.XYW))
+        self.var = self.Smin / self.ndf
+        self.Sres = sqrt(self.var)
+        self.CVs = 100.0 * self.approximateSD / self.theta
 
-class LikelihoodIntervals(object):
-    def __init__(self):
-        pass
+    def SSDlik_contour(self, x, num):
+        functemp = copy.deepcopy(self.equation)
+        functemp.fixed[num] = True
+        functemp.pars[num] = x
+        theta = functemp.theta
+        result = optimize.minimize(SSDlik, theta, args=(functemp.to_fit, self.XYW), 
+            method='Nelder-Mead')
+        return -result.fun
+
+    def __max_crit_likelihoods(self):
+        self.m = tvalue(self.ndf)**2 / 2.0
+        self.Lmax = -SSDlik(self.theta, self.func, self.XYW)
+        self.clim = sqrt(2. * self.m)
+        self.Lcrit = self.Lmax - self.m
+        
+    def __liklimits_initial_guesses(self, i):
+        
+        xhi1 = self.theta[i]
+        #TODO: if parameter constrained to be positive- ensure that xlow is positive
+        xlo1 = self.theta[i] - 2 * self.clim * self.approximateSD[i]
+        xlo2 = xhi1
+        xhi2 = self.theta[i] + 5 * self.clim * self.approximateSD[i]
+        return xhi1, xlo1, xlo2, xhi2
+
+    def lik_intervals(self):
+    
+        Llimits = []
+        i = 0
+        for j in range(len(self.equation.pars)):
+            if not self.equation.fixed[j]:
+                xhi1, xlo1, xlo2, xhi2 = self.__liklimits_initial_guesses(i)
+            
+                found = False
+                iter = 0
+                xlowlim, xhighlim = None, None
+                while not found and iter < 100: 
+                    xav1 = (xlo1 + xhi1) / 2
+                    L = self.SSDlik_contour(xav1, j) 
+                    if fabs(self.Lcrit - L) > 0.01:
+                        if L < self.Lcrit:
+                            xlo1 = xav1
+                        else:
+                            xhi1 = xav1
+                    else:
+                        found = True
+                        xlowlim = xav1
+                        if xlowlim < 0:
+                            xlowlim = None
+                        #print 'lower limit found: ', xlowlim
+                    iter += 1
+                found = False
+                iter = 0   
+                while not found and iter < 100: 
+                    #L1, L2, L3 = SSDlik_bisect(xlow2, xhigh2, j, theta, notfixed, hill_equation, dataset)
+                    xav2 = (xlo2 + xhi2) / 2
+                    L = self.SSDlik_contour(xav2, j) 
+                    if fabs(self.Lcrit - L) > 0.01:
+                        if L > self.Lcrit:
+                            xlo2 = xav2
+                        else:
+                            xhi2 = xav2
+                    else:
+                        found = True
+                        xhighlim = xav2
+                        if xhighlim < 0:
+                            xhighlim = None
+                        #print 'higher limit found: ', xhighlim
+                    iter += 1
+                Llimits.append([xlowlim, xhighlim])
+                i += 1
+        return Llimits
 
 class MultipleFitSession(object):
     def __init__(self, output=sys.stdout):
