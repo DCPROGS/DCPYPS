@@ -32,6 +32,54 @@ def CH82():
 
     return  dcpyps.Mechanism(RateList, CycleList, mtitle=mectitle, rtitle=ratetitle) #, fastblk, KBlk)
 
+def GlyR_flip():
+    
+    mectitle = '3 site flip'
+    ratetitle = 'Burzomato2004 heteromericGlyR'
+
+    A3FS = dcpyps.State('A', 'A3F*', 60e-12)
+    A2FS = dcpyps.State('A', 'A2F*', 60e-12)
+    AFS  = dcpyps.State('A', 'AF*', 60e-12)
+    A3F  = dcpyps.State('B', 'A3F', 0.0)
+    A2F  = dcpyps.State('B', 'A2F', 0.0)
+    AF   = dcpyps.State('B', 'AF', 0.0)
+    A3R  = dcpyps.State('B', 'A3R', 0.0)
+    A2R  = dcpyps.State('B', 'A2R', 0.0)
+    AR   = dcpyps.State('B', 'AR', 0.0)
+    R    = dcpyps.State('C', 'R', 0.0)
+
+    RateList = [
+        dcpyps.Rate(4200.0, AF, AFS, name='beta1', limits=[1e-15,1e+7]),
+        dcpyps.Rate(28000.0, A2F, A2FS, name='beta2', limits=[1e-15,1e+7]),
+        dcpyps.Rate(129000.0, A3F, A3FS, name='beta3', limits=[1e-15,1e+7]),
+        dcpyps.Rate(3400.0, AFS, AF, name='alpha1', limits=[1e-15,1e+7]),
+        dcpyps.Rate(2100.0, A2FS, A2F, name='alpha2', limits=[1e-15,1e+7]),
+        dcpyps.Rate(7000.0, A3FS, A3F, name='alpha3', limits=[1e-15,1e+7]),
+        
+        dcpyps.Rate(180.0, AR, AF, name='delta1', mr=True, limits=[1e-15,1e+7]),
+        dcpyps.Rate(6800.0, A2R, A2F, name='delta2', limits=[1e-15,1e+7]),
+        dcpyps.Rate(20900.0, A3R, A3F, name='delta3', mr=True, limits=[1e-15,1e+7]),
+        dcpyps.Rate(29000.0, AF, AR, name='gamma1', limits=[1e-15,1e+7]),
+        dcpyps.Rate(18000.0, A2F, A2R, name='gamma2', limits=[1e-15,1e+7]),
+        dcpyps.Rate(900.0, A3F, A3R, name='gamma3', limits=[1e-15,1e+7]),
+        
+        dcpyps.Rate(300.0, AR, R, name='k(-1)', limits=[1e-15,1e+7]),
+        dcpyps.Rate(2 * 300.0, A2R, AR, name='2k(-2)', limits=[1e-15,1e+7]),
+        dcpyps.Rate(3 * 300.0, A3R, A2R, name='3k(-3)', limits=[1e-15,1e+7]),
+        dcpyps.Rate(3 * 0.59e06, R, AR, name='3k(+1)', eff='c', limits=[1e-15,1e+10]),
+        dcpyps.Rate(2 * 0.59e06, AR, A2R, name='2k(+2)', eff='c', limits=[1e-15,1e+10]), 
+        dcpyps.Rate(0.59e06, A2R, A3R, name='k(+3)', eff='c', limits=[1e-15,1e+10]),
+         
+        dcpyps.Rate(2 * 150e06, AF, A2F, name='2kf(+2)', eff='c', limits=[1e-15,1e+10]),
+        dcpyps.Rate(150e06, A2F, A3F, name='kf(+3)', eff='c', limits=[1e-15,1e+10]),
+        
+        dcpyps.Rate(2 * 1200, A2F, AF, name='2kf(-2)', limits=[1e-15,1e+7]),
+        dcpyps.Rate(3 * 1200, A3F, A2F, name='3kf(-3)', limits=[1e-15,1e+7])
+        ]
+
+    CycleList = [dcpyps.Cycle(['A2F', 'AF', 'AR', 'A2R'])]
+    return  dcpyps.Mechanism(RateList, CycleList, mtitle=mectitle, rtitle=ratetitle)
+
 def fully_connected_cycle():
     
     mectitle = 'Fully connected cycle'
