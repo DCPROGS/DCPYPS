@@ -673,7 +673,6 @@ class Mechanism(object):
                 args = self.Rates[i].constrain_args
                 func = self.Rates[i].constrain_func
                 self.Rates[i].rateconstants = func(self.Rates[args[0]].rateconstants, args[1])
-                
         self.update_mr()
                 
     def set_mr(self, mr, nrate, ncycle=0):

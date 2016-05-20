@@ -56,9 +56,9 @@ def GlyR_flip():
         dcpyps.Rate(2100.0, A2FS, A2F, name='alpha2', limits=[1e-15,1e+7]),
         dcpyps.Rate(7000.0, A3FS, A3F, name='alpha3', limits=[1e-15,1e+7]),
         
-        dcpyps.Rate(180.0, AR, AF, name='delta1', mr=True, limits=[1e-15,1e+7]),
+        dcpyps.Rate(180.0, AR, AF, name='delta1', limits=[1e-15,1e+7]),
         dcpyps.Rate(6800.0, A2R, A2F, name='delta2', limits=[1e-15,1e+7]),
-        dcpyps.Rate(20900.0, A3R, A3F, name='delta3', mr=True, limits=[1e-15,1e+7]),
+        dcpyps.Rate(20900.0, A3R, A3F, name='delta3', limits=[1e-15,1e+7]),
         dcpyps.Rate(29000.0, AF, AR, name='gamma1', limits=[1e-15,1e+7]),
         dcpyps.Rate(18000.0, A2F, A2R, name='gamma2', limits=[1e-15,1e+7]),
         dcpyps.Rate(900.0, A3F, A3R, name='gamma3', limits=[1e-15,1e+7]),
@@ -77,7 +77,8 @@ def GlyR_flip():
         dcpyps.Rate(3 * 1200, A3F, A2F, name='3kf(-3)', limits=[1e-15,1e+7])
         ]
 
-    CycleList = [dcpyps.Cycle(['A2F', 'AF', 'AR', 'A2R'])]
+    CycleList = [dcpyps.Cycle(['A2F', 'AF', 'AR', 'A2R']), 
+        dcpyps.Cycle(['A3F', 'A2F', 'A2R', 'A3R'])]
     return  dcpyps.Mechanism(RateList, CycleList, mtitle=mectitle, rtitle=ratetitle)
 
 def fully_connected_cycle():
