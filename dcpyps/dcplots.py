@@ -26,7 +26,7 @@ def xlog_hist_HJC_fit(ax, tres, X=None, pdf=None, ipdf=None, iscale=None,
     """
 
     scale = 1.0
-    if X:
+    if X is not None:
         tout, yout, dt = prepare_xlog_hist(X, tres)
         ax.semilogx(tout, np.sqrt(yout))
         scale = len(X) * math.log10(dt) * math.log(10)
@@ -66,7 +66,7 @@ def xlog_hist_EXP_fit(ax, tres, X=None, pdf=None, pars=None, shut=True,
     area = np.append(area, 1 - np.sum(area))
 
     scale = 1.0
-    if X:
+    if X is not None:
         tout, yout, dt = prepare_xlog_hist(X, tres)
         ax.semilogx(tout, np.sqrt(yout))
         scale = (len(X) * math.log10(dt) * math.log(10) *
