@@ -472,7 +472,7 @@ def mec_load(mecfile, start):
     return dcpyps.Mechanism(RateList, CycleList,
         mtitle=mectitle, rtitle=ratetitle)
 
-def mec_load_from_prt(filename, verbose=False):    
+def load_mec_from_prt(filename, verbose=False):    
     f = open(filename, 'r')
     linenum = 0
     
@@ -516,8 +516,10 @@ def mec_load_from_prt(filename, verbose=False):
 
         if version == 'win' and "Number of open states =" in line and k == 0:
             kA = int(line.split()[-1].strip())
+            if verbose:
+                print("Number of open states = ", kA)
             line = f.readline()
-            while line != "\n":
+            while (line != "\n") and ("conductance of state" in line):
                 conductance.append(float(line.split()[-1].strip()))
                 line = f.readline()
             k = len(conductance)
@@ -724,7 +726,6 @@ def mec_load_from_prt(filename, verbose=False):
                 constr_args = [rates[i][7], rates[i][6]]
         
         rate = rates[i][3]
-        # REMIS: please make sure the state indexing is correct
         RateList.append(dcpyps.Rate(rate, StateList[rates[i][0]-1],
             StateList[rates[i][1]-1], name=rates[i][2], eff=bound, mr=mrc,
             is_constrained=is_constr, constrain_func=constr_func, constrain_args=constr_args))
