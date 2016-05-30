@@ -10,7 +10,7 @@ import numpy as np
 from scipy.special import erf
 import scipy.integrate as scpi
 
-from scalcs import qmatlib as qml
+from dcpyps.sccalc import qmatlib as qml
 
 def dPdt(P, t, mec, cfunc, cargs):
     """

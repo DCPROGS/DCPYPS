@@ -44,9 +44,9 @@ import scipy.optimize as so
 import numpy as np
 from numpy import linalg as nplin
 
-from scalcs import qmatlib as qml
+from dcpyps.sccalc import qmatlib as qml
 #import bisectHJC
-from scalcs import pdfs
+from dcpyps.sccalc import pdfs
 #import optimize
 
 def ideal_dwell_time_pdf(t, QAA, phiA):

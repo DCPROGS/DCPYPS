@@ -5,4 +5,4 @@ DC_PyPs Testing
 DC_PyPs unit tests
 """
 
-from dcpyps.tests import *
+from dcpyps.sccalc import *

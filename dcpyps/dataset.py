@@ -597,6 +597,16 @@ class Bursts(object):
             if b.get_openings_number() >= minop:
                 long.add_burst(b)
         return long
+    
+    def remove_long_open_times(self, top):
+        """Remove bursts which contain open intervals longer than specified 
+        value.
+        """
+        cleaned = Bursts()
+        for b in self.bursts:
+            if max(b.get_open_intervals()) <= top:
+                cleaned.add_burst(b)
+        return [b.intervals for b in cleaned.bursts]
 
 
 class PooledRecords(object):

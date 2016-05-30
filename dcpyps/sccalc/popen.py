@@ -5,8 +5,8 @@ curve calculations.
 import math
 import numpy as np
 
-from scalcs import qmatlib as qml
-from scalcs import scalcslib as scl
+from dcpyps.sccalc import qmatlib as qml
+from dcpyps.sccalc import scalcslib as scl
 
 def Popen(mec, tres, conc=0, eff='c'):
     """

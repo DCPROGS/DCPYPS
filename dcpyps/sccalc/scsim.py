@@ -2,8 +2,7 @@ import math
 import random
 import numpy as np
 
-from scalcs import scalcslib as scl
-
+from dcpyps.sccalc import scalcslib as scl
 
 def simulate_intervals(mec, tres, state, opamp=5, nintmax=5000):
     """
@@ -27,7 +26,7 @@ def simulate_intervals(mec, tres, state, opamp=5, nintmax=5000):
     
     while nint < nintmax-1:
 
-        newst, t, a = scl.next_state(inst, picum, tmean, mec.kA, opamp)
+        newst, t, a = next_state(inst, picum, tmean, mec.kA, opamp)
         ntrns += 1
         if t < tres:
             tints[-1] += t

@@ -9,8 +9,8 @@ import sys
 import numpy as np
 from numpy import linalg as nplin
 
-from scalcs import qmatlib as qml
-from scalcs import pdfs
+from dcpyps.sccalc import qmatlib as qml
+from dcpyps.sccalc import pdfs
 
 def phiBurst(mec):
     """
