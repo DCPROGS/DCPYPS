@@ -231,10 +231,10 @@ class Rate(object):
             for nr in range(len(self._rateconstants)):
                 if self._rateconstants[nr] < self._limits[nr][0]:
                     self.rateconstants[nr] = self._limits[nr][0]
-                    sys.stderr.write("DCPYPS: Warning: Corrected out-of-range rate constant\n")
+                    #if verbose: sys.stderr.write("DCPYPS: Warning: Corrected out-of-range rate constant\n")
                 if self._rateconstants[nr] > self._limits[nr][1]:
                     self.rateconstants[nr] = self._limits[nr][1]
-                    sys.stderr.write("DCPYPS: Warning: Corrected out-of-range rate constant\n")
+                    #if verbose: sys.stderr.write("DCPYPS: Warning: Corrected out-of-range rate constant\n")
     def _set_default_limits(self):
         if self._effectors[0] == 'c':
             self._limits = [[1e-15,1e+9]]
@@ -778,3 +778,15 @@ class Mechanism(object):
                 (self.Rates[i].unit_rate() > self.Rates[i].limits[0][1])):
                 withinLimits = False
         return withinLimits
+    
+    def impose_limits(self):
+        """
+        Check if current rate constants are within specified limits and 
+        set limits if rate constant is outside the specified limits.
+        """
+        
+        for i in range(len(self.Rates)):
+            if ((self.Rates[i].unit_rate() < self.Rates[i].limits[0][0]) or
+                (self.Rates[i].unit_rate() > self.Rates[i].limits[0][1])):
+                self.Rates[i]._impose_limits()
+
