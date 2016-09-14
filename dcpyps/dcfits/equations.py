@@ -115,6 +115,28 @@ class Linear(Equation):
         return plotX, plotY
 
     
+class ExponentialPDF(Equation):
+    def __init__(self, eqname='ExpPDF', pars=None, ncomp=1):
+        self.eqname = eqname
+        self.ncomp = ncomp
+        self.pars = pars
+        self.fixed = [False, False] * ncomp
+        self.fixed[-1] = True
+        self.names = ['tau', 'area']
+    
+    def equation(self, theta, X):
+        tau, area = self.theta_unsqueeze(theta)
+        X = np.asarray(X)
+        y = np.array([])
+        for t in np.nditer(X):
+            y = np.append(y, np.sum((area / tau) * np.exp(-t / tau)))
+        return y
+
+    def theta_unsqueeze(self, theta):
+        theta = np.asarray(theta)
+        tau, area = np.split(theta, [int(math.ceil(len(theta) / 2))])
+        area = np.append(area, 1 - np.sum(area))
+        return tau, area
 
 class Exponential(Equation):
     def __init__(self, eqname, pars=None):
