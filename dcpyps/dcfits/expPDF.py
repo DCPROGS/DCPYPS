@@ -15,7 +15,6 @@ from pylab import *
 from dcpyps import dataset
 from dcpyps import dcplots
 #from dcpyps import samples
-from dcpyps.dcfits import equations
 
 def mega_unsqueeze(theta, length):
     '''
@@ -97,6 +96,35 @@ def print_exps(theta, X):
     print('Number of fitted = ', len(X))
     print('Number below Ylow = {0:.3f}; number above Yhigh = {1:.3f}'.
           format(numout[0], numout[1]))
+
+def load_patches(dir, conc):
+    """
+    Load 
+    """
+    
+    data = np.loadtxt(dir + '.csv', 
+                  delimiter=',', dtype={
+                  'names': ('filename', 'concentration', 'res', 'tcrit'),
+                  'formats': ('S8', 'S3', 'f4', 'f4')})
+    patches = []
+    for patch in data:
+        if float(patch['concentration']) == conc:
+            filename = "{}/{}.scn".format(dir, patch['filename'].decode('utf8'))
+            rec = dataset.SCRecord([filename], float(patch['concentration'])*1e-3, 
+                                       patch['res']*1e-6, patch['tcrit']*1e-6)
+            patches.append(rec)
+    return patches
+
+def extract_intervals(recs, lim, interval_type='open'):
+    intervals = []
+    for rec in recs:
+        if interval_type == 'open':
+            temp = np.array(rec.opint)
+        elif interval_type == 'shut':
+            temp = np.array(rec.shint)
+        temp = temp[temp < lim]
+        intervals.append(temp)
+    return intervals
           
 def extract_shut_intervals(data):
     patch_list = []
@@ -236,21 +264,19 @@ def display_fits2(recs, thetas):
 
     
 if __name__ == "__main__":
-    data = np.loadtxt('../samples/etc/EKDIST_patches.csv', 
-                  delimiter=',', dtype={
-                  'names': ('filename', 'concentration', 'res', 'tcrit'),
-                  'formats': ('S8', 'S3', 'f4', 'f4')})
+    
+    dir = '../samples/etc/EKDIST_patches'
     concentration = 0.1
+    lim = 0.1
+    recs = load_patches(dir, concentration)
+    shints = extract_intervals(recs, lim, interval_type='shut')
     print('Concentration: ', concentration) 
-
-    recs, shut_list = extract_shut_intervals(data)
-            
+       
     tau_ig1 = [2.31469875e-05 ,  7.79896578e-04  , 6.73495738e-03  , 1.18752898e-01]
-    #tau1, areas1 = fit_histo_expPDF_simult(shut_list, tau_ig1, verbose=True)
+    tau1, areas1 = fit_histo_expPDF_simult(shints, tau_ig1, verbose=True)
+        
+    #thetas = fit_histo_expPDF(shints, verbose=True)
     
-    
-    thetas = fit_histo_expPDF(shut_list, verbose=True)
-    
-    #display_fits(recs, tau1, areas1)
-    display_fits2(recs, thetas)
-    
+    display_fits(recs, tau1, areas1)
+    #display_fits2(recs, thetas)
+        
