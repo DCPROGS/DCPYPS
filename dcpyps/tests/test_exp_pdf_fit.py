@@ -17,3 +17,5 @@ def test_load_patches():
     assert recs[1].filenames == ['../samples/etc/EKDIST_patches/15071504.scn']
     assert_almost_equal( shints[0][0], 0.00050565, delta = 1e-8)
 
+def test_ExponentialPDF_class():
+    from dcpyps.dcfits.equations import ExponentialPDF

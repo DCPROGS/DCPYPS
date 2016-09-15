@@ -15,21 +15,22 @@ from pylab import *
 from dcpyps import dataset
 from dcpyps import dcplots
 #from dcpyps import samples
+from dcpyps.dcfits.equations import ExponentialPDF
 
-def mega_unsqueeze(theta, length):
+def theta_unsqueeze_simult(theta, npatch):
     '''
     length is the number of patches.
     returns the list of thetas.
     '''
-    num = (len(theta) + length) // (1 + length)
+    num = (len(theta) + npatch) // (1 + npatch)
     tau = theta[:num]
-    theta_list = []
-    for i in range(length):
+    thetas = []
+    for i in range(npatch):
         new_theta = tau[:]
         new_theta = np.append(new_theta,theta[num+i*(num-1): 2*num+i*(num-1)-1])
-        theta_list.append(new_theta)
+        thetas.append(new_theta)
 
-    return theta_list
+    return thetas
 
 
 def theta_unsqueeze(theta):
@@ -47,12 +48,12 @@ def myexp(theta, X):
         y = np.append(y, np.sum((area / tau) * np.exp(-t / tau)))
     return y
 
-def sum_LL(theta, X):
+def LL_simult(theta, X):
     num_set = len(X)
-    theta_list = mega_unsqueeze(theta,num_set)
+    thetas = theta_unsqueeze_simult(theta,num_set)
     s = 0.0
     for i in range(num_set):
-        s += LL(theta_list[i], X[i])
+        s += LL(thetas[i], X[i])
     return s
     
 
@@ -126,140 +127,128 @@ def extract_intervals(recs, lim, interval_type='open'):
         intervals.append(temp)
     return intervals
           
-def extract_shut_intervals(data):
-    patch_list = []
-    data_list = []
+#def extract_shut_intervals(data):
+#    patch_list = []
+#    data_list = []
+#
+#    for patch in data:
+#        if float(patch['concentration']) == concentration:
+#            filename = "../samples/etc/EKDIST_scn/{}.scn".format(patch['filename'].decode('utf8'))
+#            print(filename)
+#            rec = dataset.SCRecord([filename], float(patch['concentration'])*1e-3, 
+#                                       patch['res']*1e-6, patch['tcrit']*1e-6)
+#            patch_list.append(rec)
+#            shint = np.array(rec.shint)
+#            if concentration >= 0.3:
+#                shint = shint[shint<0.1]
+#            else:
+#                shint = shint[shint<1]
+#            data_list.append(shint)
+#    return patch_list, data_list
 
-    for patch in data:
-        if float(patch['concentration']) == concentration:
-            filename = "../samples/etc/EKDIST_scn/{}.scn".format(patch['filename'].decode('utf8'))
-            print(filename)
-            rec = dataset.SCRecord([filename], float(patch['concentration'])*1e-3, 
-                                       patch['res']*1e-6, patch['tcrit']*1e-6)
-            patch_list.append(rec)
-            shint = np.array(rec.shint)
-            if concentration >= 0.3:
-                shint = shint[shint<0.1]
-            else:
-                shint = shint[shint<1]
-            data_list.append(shint)
-    return patch_list, data_list
+def extract_taus_areas_from_theta(theta, ncomp):
+    taus = theta[:ncomp]
+    areas = np.reshape(theta[ncomp:], 
+                       (len(theta[ncomp:]) // (ncomp - 1), (ncomp - 1)))
+    return taus, areas
 
-def fit_histo_expPDF_simult(data_list, tau_ig, verbose=False):
+def are_taus_areas_positive(taus, areas, verbose=False):
     
-    ncomp = len(tau_ig)
-    patchnum = len(data_list)
+    if verbose: print('tau=', taus)
+    if verbose: print('areas=', areas)
+    if verbose: print('all(tau > 0)\t all(area < 1)\t ' +
+                      'all(area > 0)\t all(sum_areas < 1)')
+    if verbose: print(str(all(taus > 0)) + '\t' +
+                      str(all(areas < 1)) + '\t' +
+                      str(all(areas > 0)) + '\t' + 
+                      str(all(np.sum(areas, axis=1) < 1)))
 
-    theta = tau_ig[:]
-    theta = np.append(theta,[1/ncomp]*(ncomp-1)*patchnum)
-    if verbose: print('theta= ', theta)
-        #theta1 = tau_ig[:]
-        #theta1 = np.append(theta1,[1/compnum]*(compnum)*patchnum)
-        #if verbose: print('theta= ', theta1)
-    
+    return (all(taus > 0) and all(areas < 1) and 
+            all(areas > 0) and all(np.sum(areas, axis=1) < 1))
+
+def get_new_theta(taus, areas):
+            
+    if are_taus_areas_positive(taus, areas):
+        mean_area = np.mean(areas,axis = 0)
+        theta = np.append(taus, np.tile(mean_area, len(areas)))
+    else:
+        if any(taus < 0):
+            taus = np.abs(taus)
+        satisified = []
+        for area in areas:
+            if all(area > 0) and sum(area) < 1:
+                satisified.append(area)
+        if satisified:
+            area = np.vstack(satisified)
+            mean_area = np.mean(area,axis = 0)
+        else:
+            mean_area = np.random.uniform(low=0.0, high=1.0, 
+                                          size=len(taus)-1)/len(taus)
+        theta = np.append(taus, np.tile(mean_area, len(data)))
+    return theta
+
+def generate_random_theta_multiExpPDF(ncomp):
+    return np.hstack(
+          (np.random.random_sample(ncomp)* np.array([1e-4,1e-3,1e-2,1e-1]),
+           np.random.random_sample(ncomp-1)/(ncomp-1)))
+
+
+def fit_histo_expPDF_simult(data, theta, ncomp, verbose=False):
     likelihood = 0.0
     repeat = True
     while repeat:
-        res = minimize(sum_LL, theta, args=data_list, method='Nelder-Mead')
+        res = minimize(LL_simult, theta, args=data, method='Nelder-Mead')
         if verbose: print('Fit success: '+str(res.success))
+        taus, areas = extract_taus_areas_from_theta(res.x, ncomp)
 
-        tau = res.x[:ncomp]
-        if verbose: print('tau=', tau)
-        area = res.x[ncomp:]
-        areas = np.reshape(area, (len(area) // (ncomp - 1), (ncomp - 1)))
-        if verbose: print('areas=', areas)
-        sum_areas = np.sum(areas, axis=1)
-
-        if verbose: print('all(tau > 0)\t all(area < 1)\t all(area > 0)\t all(sum_areas < 1)')
-        if verbose: print(str(all(tau > 0))+'\t'+str(all(area < 1))+
-                          '\t'+str(all(area > 0))+'\t'+str(all(sum_areas < 1)))
-
-        if all(tau > 0) and all(area < 1) and all(area > 0) and all(sum_areas < 1):
-            new = sum_LL(res.x,data_list)
-            print('New likelihood = ', new)
-            if new < likelihood:
-                #best = res.x
-                likelihood = new
-                mean_area = np.mean(areas,axis = 0)
-                theta = np.append(tau,np.tile(mean_area, patchnum))
-            else:
-                repeat = False
-                print('Fitting finished.')
+        if are_taus_areas_positive(taus, areas, verbose) and res.fun >= likelihood:   
+            repeat = False
+            if verbose: print('Fitting finished.')
+            if verbose: print('Final likelihood = ', res.fun)
         else:
-            if any(tau < 0):
-                tau = np.abs(tau)
-            satisified = []
-            for area in areas:
-                if all(area > 0) and sum(area) < 1:
-                    satisified.append(area)
-            if satisified:
-                area = np.vstack(satisified)
-                mean_area = np.mean(area,axis = 0)
-            else:
-                mean_area = np.random.uniform(low=0.0, high=1.0, size=len(tau)-1)/len(tau)
-            theta = np.append(tau,np.tile(mean_area, patchnum))
-            
-    return tau, areas
+            if are_taus_areas_positive(taus, areas, verbose) and res.fun < likelihood:
+                likelihood = res.fun
+            theta = get_new_theta(taus, areas)    
+    return res.x
     
-def fit_histo_expPDF(data_list, verbose=False):
+def fit_histo_expPDF(data, theta, ncomp, verbose=False):
     
-    
-    npatch = len(data_list)
-    theta_list = np.empty([npatch, 7])
-    theta_list.fill(-float('inf'))
-
-    likehood_list = np.empty(npatch)
+    thetas = np.empty([len(data), (2*ncomp-1)])
+    thetas.fill(-float('inf'))
+    likehood_list = np.empty(len(data))
     likehood_list.fill(-float('inf'))
-    repeat = True
-    while repeat:
-        repeat = False
-        for i in range(npatch):
-            shut_ints = np.array(data_list[i])
-            shut_ints = shut_ints[shut_ints < 1]
-
-            if (theta_list < 0).any():
-                while any(theta_list[i] < 0):
-                    if verbose: print('negative area encountered')
-                    theta = np.hstack((np.random.random_sample(4) * np.array([1e-4,1e-3,1e-2,1e-1]),
-                                      np.random.random_sample(3)/3))
-                    if verbose: print('Patch number: ', i+1)
-                    if verbose: print(theta)
-                    res = minimize(LL, theta, args=shut_ints, method='Nelder-Mead')
-                    if verbose: print(res.x)    
-                    theta_list[i] = res.x
-                    likehood_list[i] = LL(res.x, shut_ints)
-                    repeat = True
-            else:
-                theta = np.average(theta_list, axis = 0)
-                if verbose: print('Patch number: ', i+1)
-                print(theta)
-                res = minimize(LL, theta, args=shut_ints, method='Nelder-Mead')
-                print(res.x)
-                likehood = LL(res.x, shut_ints)
-                if likehood > likehood_list[i]:
-                    theta_list[i] = res.x
-                    likehood_list[i] = LL(res.x, shut_ints)
-                    repeat = True
-    return theta_list
-            
-def display_fits(recs, tau, areas):
     
-    k = len(recs)
-    fig, ax  = subplots(1, k, figsize=(4 * k, 4))
-    for i in range(k):
-        dcplots.xlog_hist_EXP_fit(ax[i], recs[i].tres, recs[i].shint, 
-            pdf=myexp, pars=np.append(tau, areas[i]), shut=True) 
-        print_exps(np.append(tau, areas[i]), recs[i].shint)
-    show()
-
-def display_fits2(recs, thetas):
+    for i in range(len(data)):
+        if verbose: print('Patch number: ', i+1)
+        repeat = True
+        while repeat:
+            res = minimize(LL, theta, args=np.array(data[i]), method='Nelder-Mead')
+            if verbose: print('Fit success: '+str(res.success))
+            repeat = False
+            if (res.x < 0).any():
+                if verbose: print('negative tau or area encountered')
+                theta = generate_random_theta_multiExpPDF(ncomp)
+                if verbose: print(theta)
+                repeat = True
+            else:
+                theta = np.average(thetas, axis = 0)
+                print(theta)
+                res = minimize(LL, theta, args=np.array(data[i]), method='Nelder-Mead')
+                print(res.x)
+                if res.fun > likehood_list[i]:
+                    thetas[i] = res.x
+                    likehood_list[i] = res.fun
+                    repeat = True
+    return thetas
+            
+def display_fits(recs, thetas):
     
     k = len(recs)
     fig, ax  = subplots(1, k, figsize=(4 * k, 4))
     for i in range(k):
         dcplots.xlog_hist_EXP_fit(ax[i], recs[i].tres, recs[i].shint, 
             pdf=myexp, pars=thetas[i], shut=True) 
-#        print_exps(np.append(tau, areas[i]), recs[i].shint)
+        print_exps(thetas[i], recs[i].shint)
     show()
 
     
@@ -271,12 +260,17 @@ if __name__ == "__main__":
     recs = load_patches(dir, concentration)
     shints = extract_intervals(recs, lim, interval_type='shut')
     print('Concentration: ', concentration) 
-       
-    tau_ig1 = [2.31469875e-05 ,  7.79896578e-04  , 6.73495738e-03  , 1.18752898e-01]
-    tau1, areas1 = fit_histo_expPDF_simult(shints, tau_ig1, verbose=True)
-        
-    #thetas = fit_histo_expPDF(shints, verbose=True)
     
-    display_fits(recs, tau1, areas1)
-    #display_fits2(recs, thetas)
-        
+    ncomp = 4
+    tau_ig1 = [2.31469875e-05 ,  7.79896578e-04  , 6.73495738e-03  , 1.18752898e-01]
+    theta = np.append(tau_ig1[:], [1 / ncomp] * (ncomp - 1) * len(recs))
+   
+    theta = fit_histo_expPDF_simult(shints, theta, ncomp, verbose=True)
+    thetas = theta_unsqueeze_simult(theta, len(recs))
+    
+    
+#    theta = generate_random_theta_multiExpPDF(ncomp)
+#    print ('random theta:', theta)
+#    thetas = fit_histo_expPDF(shints, theta, ncomp, verbose=True)
+    
+    display_fits(recs, thetas)
