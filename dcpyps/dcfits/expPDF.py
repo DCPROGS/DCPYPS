@@ -189,16 +189,15 @@ def get_new_theta(taus, areas):
 
 def generate_random_theta_multiExpPDF(ncomp):
     return np.hstack(
-          (np.random.random_sample(ncomp)* np.array([1e-4,1e-3,1e-2,1e-1]),
-           np.random.random_sample(ncomp-1)/(ncomp-1)))
+        (np.random.random_sample(ncomp)* np.array([1e-4,1e-3,1e-2,1e-1]),
+        np.random.random_sample(ncomp-1)/(ncomp-1)))
 
-
-def fit_histo_expPDF_simult(data, theta, ncomp, verbose=False):
-    likelihood = 0.0
+def fit_histo_expPDF_simult(data, ig, ncomp, verbose=False):
+    theta = ig
+    likelihood = -float('inf')
     repeat = True
     while repeat:
         res = minimize(LL_simult, theta, args=data, method='Nelder-Mead')
-        if verbose: print('Fit success: '+str(res.success))
         taus, areas = extract_taus_areas_from_theta(res.x, ncomp)
 
         if are_taus_areas_positive(taus, areas, verbose) and res.fun >= likelihood:   
@@ -211,35 +210,28 @@ def fit_histo_expPDF_simult(data, theta, ncomp, verbose=False):
             theta = get_new_theta(taus, areas)    
     return res.x
     
-def fit_histo_expPDF(data, theta, ncomp, verbose=False):
+def fit_histo_expPDF_batch(data, ig, ncomp, verbose=False):
     
-    thetas = np.empty([len(data), (2*ncomp-1)])
-    thetas.fill(-float('inf'))
-    likehood_list = np.empty(len(data))
-    likehood_list.fill(-float('inf'))
-    
-    for i in range(len(data)):
-        if verbose: print('Patch number: ', i+1)
-        repeat = True
-        while repeat:
+    thetas = ig
+    liks = np.empty(len(data))
+    liks.fill(-float('inf'))
+    repeat = True
+    while repeat:
+        if verbose: print('liks=', liks) 
+        repeat = False
+        theta = np.average(thetas, axis = 0)
+        for i in range(len(data)):    
             res = minimize(LL, theta, args=np.array(data[i]), method='Nelder-Mead')
-            if verbose: print('Fit success: '+str(res.success))
-            repeat = False
-            if (res.x < 0).any():
-                if verbose: print('negative tau or area encountered')
+            while any(res.x <0):
+                if verbose: print('negative area encountered')
+                if verbose: print(res.x)
                 theta = generate_random_theta_multiExpPDF(ncomp)
-                if verbose: print(theta)
-                repeat = True
-            else:
-                theta = np.average(thetas, axis = 0)
-                print(theta)
                 res = minimize(LL, theta, args=np.array(data[i]), method='Nelder-Mead')
-                print(res.x)
-                if res.fun > likehood_list[i]:
-                    thetas[i] = res.x
-                    likehood_list[i] = res.fun
-                    repeat = True
-    return thetas
+            if res.fun > liks[i]:
+                repeat = True                
+                thetas[i] = res.x
+                liks[i] = res.fun
+    return thetas, liks
             
 def display_fits(recs, thetas):
     
@@ -255,22 +247,21 @@ def display_fits(recs, thetas):
 if __name__ == "__main__":
     
     dir = '../samples/etc/EKDIST_patches'
-    concentration = 0.1
+    concentration = 0.3
     lim = 0.1
     recs = load_patches(dir, concentration)
     shints = extract_intervals(recs, lim, interval_type='shut')
     print('Concentration: ', concentration) 
     
     ncomp = 4
+
     tau_ig1 = [2.31469875e-05 ,  7.79896578e-04  , 6.73495738e-03  , 1.18752898e-01]
     theta = np.append(tau_ig1[:], [1 / ncomp] * (ncomp - 1) * len(recs))
-   
     theta = fit_histo_expPDF_simult(shints, theta, ncomp, verbose=True)
     thetas = theta_unsqueeze_simult(theta, len(recs))
     
-    
-#    theta = generate_random_theta_multiExpPDF(ncomp)
-#    print ('random theta:', theta)
-#    thetas = fit_histo_expPDF(shints, theta, ncomp, verbose=True)
+#    ig = np.tile(generate_random_theta_multiExpPDF(ncomp), (len(recs), 1))
+#    thetas, liks = fit_histo_expPDF_batch(shints, ig, ncomp)
+#    print('liks=', liks) 
     
     display_fits(recs, thetas)
