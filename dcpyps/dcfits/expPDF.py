@@ -127,25 +127,6 @@ def extract_intervals(recs, lim, interval_type='open'):
         intervals.append(temp)
     return intervals
           
-#def extract_shut_intervals(data):
-#    patch_list = []
-#    data_list = []
-#
-#    for patch in data:
-#        if float(patch['concentration']) == concentration:
-#            filename = "../samples/etc/EKDIST_scn/{}.scn".format(patch['filename'].decode('utf8'))
-#            print(filename)
-#            rec = dataset.SCRecord([filename], float(patch['concentration'])*1e-3, 
-#                                       patch['res']*1e-6, patch['tcrit']*1e-6)
-#            patch_list.append(rec)
-#            shint = np.array(rec.shint)
-#            if concentration >= 0.3:
-#                shint = shint[shint<0.1]
-#            else:
-#                shint = shint[shint<1]
-#            data_list.append(shint)
-#    return patch_list, data_list
-
 def extract_taus_areas_from_theta(theta, ncomp):
     taus = theta[:ncomp]
     areas = np.reshape(theta[ncomp:], 
@@ -188,8 +169,9 @@ def get_new_theta(taus, areas):
     return theta
 
 def generate_random_theta_multiExpPDF(ncomp):
+    suggest_tau = np.array([1 / math.pow(10, 3-i) for i in range(ncomp)])
     return np.hstack(
-        (np.random.random_sample(ncomp)* np.array([1e-4,1e-3,1e-2,1e-1]),
+        (np.random.random_sample(ncomp) * suggest_tau, #np.array([1e-4,1e-3,1e-2,1e-1]),
         np.random.random_sample(ncomp-1)/(ncomp-1)))
 
 def fit_histo_expPDF_simult(data, ig, ncomp, verbose=False):
@@ -224,8 +206,9 @@ def fit_histo_expPDF_batch(data, ig, ncomp, verbose=False):
             res = minimize(LL, theta, args=np.array(data[i]), method='Nelder-Mead')
             while any(res.x <0):
                 if verbose: print('negative area encountered')
-                if verbose: print(res.x)
+                #if verbose: print(res.x)
                 theta = generate_random_theta_multiExpPDF(ncomp)
+                #theta = np.abs(theta) * np.random.random_sample(len(theta))
                 res = minimize(LL, theta, args=np.array(data[i]), method='Nelder-Mead')
             if res.fun > liks[i]:
                 repeat = True                
@@ -233,35 +216,63 @@ def fit_histo_expPDF_batch(data, ig, ncomp, verbose=False):
                 liks[i] = res.fun
     return thetas, liks
             
-def display_fits(recs, thetas):
+def display_fits(thetas, ints, tres, is_shut=False):
     
-    k = len(recs)
-    fig, ax  = subplots(1, k, figsize=(4 * k, 4))
-    for i in range(k):
-        dcplots.xlog_hist_EXP_fit(ax[i], recs[i].tres, recs[i].shint, 
-            pdf=myexp, pars=thetas[i], shut=True) 
-        print_exps(thetas[i], recs[i].shint)
+    fig, ax  = subplots(1, len(ints), figsize=(4 * len(ints), 4))
+    for i in range(len(ints)):
+        dcplots.xlog_hist_EXP_fit(ax[i], tres[i], ints[i], 
+            pdf=myexp, pars=thetas[i], shut=is_shut) 
+#        print_exps(thetas[i], recs[i].shint)
     show()
+
+def print_results(thetas, ints):
+    for i in range(len(ints)):
+        print_exps(thetas[i], ints[i])
+
+def print_averages(thetas):
+    taus, areas = [], []
+    for theta in thetas:
+        tau, area = theta_unsqueeze(theta)
+        taus.append(tau)
+        areas.append(area)
+    tau_av = np.average(np.transpose(np.array(taus)), axis=1)
+    tau_se = np.std(np.transpose(np.array(taus)), axis=1) / math.sqrt(len(thetas))
+    area_av = np.average(np.transpose(np.array(areas)), axis=1)
+    area_se = np.std(np.transpose(np.array(areas)), axis=1) / math.sqrt(len(thetas))
+    print('\nAverages of {0} patches:'.format(len(thetas)))
+    for t, dt, a, da in zip(tau_av, tau_se, area_av, area_se):
+        print('tau (ms)= {0:.6f} +/- {1:.6f} ; area (%)= {2:.3f} +/- {3:.3f}'.
+            format(t*1000, dt*1000, a*100, da*100))
+    return tau_av, tau_se, area_av, area_se
+
+def load_data(datadir, conc, lim):
+    recs = load_patches(datadir, conc)
+    shints = extract_intervals(recs, lim, interval_type='shut')
+    tres = [recs[i].tres for i in range(len(recs))]
+    return shints, tres
+
+def fit_expPDF_batch_independent(data, ncomp):
+    ig = np.tile(generate_random_theta_multiExpPDF(ncomp), (len(data), 1))
+    return fit_histo_expPDF_batch(data, ig, ncomp, verbose=True)
 
     
 if __name__ == "__main__":
     
-    dir = '../samples/etc/EKDIST_patches'
-    concentration = 0.3
-    lim = 0.1
-    recs = load_patches(dir, concentration)
-    shints = extract_intervals(recs, lim, interval_type='shut')
-    print('Concentration: ', concentration) 
+    datadir = '../samples/etc/EKDIST_patches'
+    conc = 10
+    lim = 1 #if conc > 0.3 else 0.1
+    shints, tres = load_data(datadir, conc, lim)
     
-    ncomp = 4
+    ncomp = 3
+    
+#    tau_ig1 = [2.31469875e-05 ,  7.79896578e-04  , 6.73495738e-03  , 1.18752898e-01]
+#    theta = np.append(tau_ig1[:], [1 / ncomp] * (ncomp - 1) * len(recs))
+#    theta = fit_histo_expPDF_simult(shints, theta, ncomp, verbose=True)
+#    thetas = theta_unsqueeze_simult(theta, len(recs))
+    
+    thetas, liks = fit_expPDF_batch_independent(shints, ncomp)
+    
+    print_results(thetas, shints)
+    print_averages(thetas)
+    display_fits(thetas, shints, tres, is_shut=True)
 
-    tau_ig1 = [2.31469875e-05 ,  7.79896578e-04  , 6.73495738e-03  , 1.18752898e-01]
-    theta = np.append(tau_ig1[:], [1 / ncomp] * (ncomp - 1) * len(recs))
-    theta = fit_histo_expPDF_simult(shints, theta, ncomp, verbose=True)
-    thetas = theta_unsqueeze_simult(theta, len(recs))
-    
-#    ig = np.tile(generate_random_theta_multiExpPDF(ncomp), (len(recs), 1))
-#    thetas, liks = fit_histo_expPDF_batch(shints, ig, ncomp)
-#    print('liks=', liks) 
-    
-    display_fits(recs, thetas)
