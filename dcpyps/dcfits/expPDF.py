@@ -376,7 +376,7 @@ def test_fit_10_open_simult(conc, csvfile, tau_ig):
     
 if __name__ == "__main__":
     
-    datadir = '../samples/etc/EKDIST_patches'
+    #datadir = '../samples/etc/EKDIST_patches'
     csvfile = '../samples/etc/EKDIST_patches/EKDIST_patches.csv'
     conc = 100
     #Initial guess of Tau

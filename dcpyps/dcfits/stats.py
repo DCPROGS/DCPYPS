@@ -4,6 +4,47 @@ from scipy import optimize
 import numpy as np
 from numpy import linalg as nplin
 
+class Variation():
+    def __init__(self, XYW, func, pars):
+        '''
+        Calculate measures of variation.
+
+        Parameters
+        ----------
+        X, Y, W : ndarrays, shape (n, )
+            x, y and weights of data points.
+        func : callable func(x, args)
+            The objective function to be minimized.
+        args : array_like, shape (k, )
+            Function parameters.
+        '''
+        self.func = func
+        self.X, self.Y, self.W = XYW
+        self.args = pars
+        
+    def residuals(self):
+        '''
+        Calculate the weighted residuals.
+
+        Returns
+        -------
+        residuals : ndarray, shape (n, )
+            Weighted sum of squared deviations.
+        '''
+        return self.W * (self.Y - self.func(self.X, self.args))
+    
+    def SSD(self):
+        """
+        Calculate weighted sum of squared deviations.
+
+        Returns
+        -------
+        SSD : float
+            Weighted sum of squared deviations.
+        """
+
+        return np.sum(self.residuals()**2)
+
 def residuals(pars, func, X, Y, W):
     '''
     Calculate the weighted residuals.
