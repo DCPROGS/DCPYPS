@@ -19,5 +19,3 @@ def test_load_patches():
 
 def test_ExponentialPDF_class():
     from dcpyps.dcfits.equations import ExponentialPDF
-    
-

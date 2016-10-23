@@ -33,14 +33,18 @@ class Simplex():
         self.nit = 1
         self.nfev = 0
         
-    def _func(self, x):
+    def _func(self, x, *args):
         """
         Note that function to be minimised should return function value and
         parameters. There could be functions which modify parameters inside 
         (eg parameters out of limits, etc).
         """
         self.nfev += 1
-        return self.func(x, self.args)
+        ans = self.func(x, *args)
+        if isinstance(ans, tuple):
+            return ans
+        elif isinstance(ans, float):
+            return ans, x
         
     def _set_settings(self, kwargs):
         """
