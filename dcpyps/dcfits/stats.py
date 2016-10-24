@@ -75,60 +75,46 @@ class SSR():
         Sres = sqrt(S / float(n)) # - len(func.fixed)))
         return n * log(sqrt(2 * pi) * Sres) + S / (2 * Sres**2)
 
+class ObservedInformation(object):
+    def __init__(self, theta, func, *args):
+        self.theta = theta
+        self.func = func
+        self.args = args
+        self.k = self.theta.size
+        self.__calculate_variances()
 
-class EstimateErrors(object):
-    def __init__(self, equation, dataset):
-        self.theta = equation.theta
-        self.equation = equation
-        self.func = equation.to_fit
-        self.dataset = dataset
-        self.XYW = (dataset.X, dataset.Y, dataset.W)
-        self.__calculate_all()
-         
-    def __calculate_all(self):
-        #self.covariance = self.covariance_matrix()
-        self.approximateSD = self.approximateSD()
-        self.correlations = self.correlation_matrix(self.covariance)
-        self.variances()
-        self.__max_crit_likelihoods()
-        self.Llimits = self.lik_intervals()
-         
-    def __optimal_deltas(self):
-        """ """
- 
-        Lcrit = 1.005 * -0.5 * SSD(self.theta, (self.func, self.XYW))[0]
-        deltas = 0.1 * self.theta
-        L = -0.5 * SSD(self.theta + deltas, (self.func, self.XYW))[0]
-        if L > Lcrit:
-            count = 0
-            while L > Lcrit and count < 100:
-                deltas *= 2
-                L = -0.5 * SSD(self.theta + deltas, (self.func, self.XYW))[0]
-                count += 1
-        elif L < Lcrit:
-            count = 0
-            while L < Lcrit and count < 100:
-                deltas *= 0.5
-                L = -0.5 * SSD(self.theta + deltas, (self.func, self.XYW))[0]
-                count += 1
-        return deltas
- 
-    def __hessian(self):
+    def __calculate_variances(self):    
+        self.hessian = self.__calculate_hessian()
+        weight = self.func(self.theta) / (self.args[0] - self.k)
+        self.covariance = nplin.inv(0.5 * self.hessian) * weight 
+        self.approximateSD = np.sqrt(self.covariance.diagonal())
+        self.correlations = self.__calculate_correlations(self.covariance)
+        
+    def __calculate_correlations(self, covar):
+        correl = np.zeros((len(covar),len(covar)))
+        for i1 in range(len(covar)):
+            for j1 in range(len(covar)):
+                correl[i1,j1] = (covar[i1,j1] /
+                    np.sqrt(np.multiply(covar[i1,i1],covar[j1,j1])))
+        return correl
+
+    def __calculate_hessian(self):
         """
         """
-        hessian = np.zeros((self.theta.size, self.theta.size))
+        hess = np.zeros((self.k, self.k))
         deltas = self.__optimal_deltas()
         # Diagonal elements of Hessian
-        coe11 = np.array([self.theta.copy(), ] * self.theta.size) + np.diag(deltas)
-        coe33 = np.array([self.theta.copy(), ] * self.theta.size) - np.diag(deltas)
-        for i in range(self.theta.size):
-            hessian[i, i] = ((SSD(coe11[i], (self.func, self.XYW))[0] -
-                2.0 * SSD(self.theta, (self.func, self.XYW))[0] +
-                SSD(coe33[i], (self.func, self.XYW))[0]) / (deltas[i]  ** 2))
+        coe11 = np.array([self.theta.copy(), ] * self.k) + np.diag(deltas)
+        coe33 = np.array([self.theta.copy(), ] * self.k) - np.diag(deltas)
+        for i in range(self.k):
+            hess[i, i] = ((self.func(coe11[i]) - 
+                2.0 * self.func(self.theta) +
+                self.func(coe33[i])) / (deltas[i]  ** 2))
         # Non diagonal elements of Hessian
-        for i in range(self.theta.size):
-            for j in range(self.theta.size):
-                coe1, coe2, coe3, coe4 = self.theta.copy(), self.theta.copy(), self.theta.copy(), self.theta.copy()
+        for i in range(self.k):
+            for j in range(self.k):
+                coe1, coe2 = self.theta.copy(), self.theta.copy()
+                coe3, coe4 = self.theta.copy(), self.theta.copy()
                 if i != j:                
                     coe1[i] += deltas[i]
                     coe1[j] += deltas[j]
@@ -138,53 +124,54 @@ class EstimateErrors(object):
                     coe3[j] += deltas[j]
                     coe4[i] -= deltas[i]
                     coe4[j] -= deltas[j]
-                    hessian[i, j] = ((
-                        SSD(coe1, (self.func, self.XYW))[0] -
-                        SSD(coe2, (self.func, self.XYW))[0] -
-                        SSD(coe3, (self.func, self.XYW))[0] +
-                        SSD(coe4, (self.func, self.XYW))[0]) /
+                    hess[i, j] = ((
+                        self.func(coe1) - self.func(coe2) -
+                        self.func(coe3) + self.func(coe4)) /
                         (4 * deltas[i] * deltas[j]))
-        return 0.5 * hessian
- 
-    def covariance_matrix(self):
+        return hess
+
+    def __optimal_deltas(self):
         """ """
-        cov = nplin.inv(self.__hessian())
-        if self.dataset.weightmode == 1:
-            errvar = SSD(self.theta, (self.func, self.XYW))[0] / (self.XYW[0].size - self.theta.size)
-        else:
-            errvar = 1.0
-        return cov * errvar
- 
-    def approximateSD(self):
-        """
-        Calculate approximate standard deviation of the estimates from the inverse
-        of the Hessian matrix ('observed information matrix').
- 
-        Parameters
-        ----------
-        theta : array_like, shape (k, )
-            Initial guess.
-        func : callable func(x, args)
-            The objective function to be minimized.
-        args : object
-            Extra arguments passed to func.
- 
-        Returns
-        -------
-        approximateSD : ndarray, shape (k,)
-            Approximate SD.
-        """
-        self.covariance = self.covariance_matrix()
-        return np.sqrt(self.covariance.diagonal())
- 
-    def correlation_matrix(self, covar):
-        correl = np.zeros((len(covar),len(covar)))
-        for i1 in range(len(covar)):
-            for j1 in range(len(covar)):
-                correl[i1,j1] = (covar[i1,j1] /
-                    np.sqrt(np.multiply(covar[i1,i1],covar[j1,j1])))
-        return correl
+
+        Lcrit = (self.func(self.theta) + fabs(self.func(self.theta)*0.005))
+        deltas = 0.001 * self.theta
+        L = self.func(self.theta + deltas)
+        if L < Lcrit:
+            count = 0
+            while L < Lcrit and count < 100:
+                L, deltas, count = self.__change_L(2, deltas, count)
+        elif L > Lcrit:
+            count = 0
+            while L > Lcrit and count < 100:
+                L, deltas, count = self.__change_L(0.5, deltas, count)
+        return deltas
+
+    def __change_L(self, factor, deltas, count):
+        new_deltas = deltas * factor
+        L = self.func(self.theta + new_deltas)
+        return L, new_deltas, count+1
+
+class LikelihoodIntervals(object):
+    def __init__(self, theta, func, *args):
+        self.theta = theta
+        self.func = func
+        self.args = args
+    
+class EstimateErrors(object):
+    def __init__(self, equation, dataset, approximateSD):
+        self.theta = equation.theta
+        self.equation = equation
+        self.func = equation.to_fit
+        self.dataset = dataset
+        self.XYW = (dataset.X, dataset.Y, dataset.W)
+        self.approximateSD = approximateSD
+        self.__calculate_all()
          
+    def __calculate_all(self):
+        self.variances()
+        self.__max_crit_likelihoods()
+        self.Llimits = self.lik_intervals()
+                 
     def variances(self):
         self.kfit = self.theta.size
         self.ndf = self.dataset.size() - self.kfit
@@ -192,7 +179,7 @@ class EstimateErrors(object):
             self.XYW))
         self.var = self.Smin / self.ndf
         self.Sres = sqrt(self.var)
-        self.CVs = 100.0 * self.approximateSD / self.theta
+        #self.CVs = 100.0 * self.approximateSD / self.theta
  
     def SSDlik_contour(self, x, num):
         functemp = copy.deepcopy(self.equation)
@@ -320,98 +307,6 @@ def SSDlik_contour(x, num, theta, func, set):
     result = optimize.minimize(SSDlik, theta, args=(functemp.to_fit, set), 
         method='Nelder-Mead', jac=None, hess=None)
     return -result.fun
-
-def optimal_deltas(theta, func, args):
-    """ """
-
-    Lcrit = 1.005 * -0.5 * SSD(theta, (func, args))[0]
-    deltas = 0.1 * theta
-    L = -0.5 * SSD(theta + deltas, (func, args))[0]
-    if L > Lcrit:
-        count = 0
-        while L > Lcrit and count < 100:
-            deltas *= 2
-            L = -0.5 * SSD(theta + deltas, (func, args))[0]
-            count += 1
-    elif L < Lcrit:
-        count = 0
-        while L < Lcrit and count < 100:
-            deltas *= 0.5
-            L = -0.5 * SSD(theta + deltas, (func, args))[0]
-            count += 1
-    return deltas
-
-def hessian(theta, func, args):
-    """
-    """
-    hessian = np.zeros((theta.size, theta.size))
-    deltas = optimal_deltas(theta, func, args)
-    # Diagonal elements of Hessian
-    coe11 = np.array([theta.copy(), ] * theta.size) + np.diag(deltas)
-    coe33 = np.array([theta.copy(), ] * theta.size) - np.diag(deltas)
-    for i in range(theta.size):
-        hessian[i, i] = ((SSD(coe11[i], (func, args))[0] - 
-            2.0 * SSD(theta, (func, args))[0] +
-            SSD(coe33[i], (func, args))[0]) / (deltas[i]  ** 2))
-    # Non diagonal elements of Hessian
-    for i in range(theta.size):
-        for j in range(theta.size):
-            coe1, coe2, coe3, coe4 = theta.copy(), theta.copy(), theta.copy(), theta.copy()
-            if i != j:                
-                coe1[i] += deltas[i]
-                coe1[j] += deltas[j]
-                coe2[i] += deltas[i]
-                coe2[j] -= deltas[j]
-                coe3[i] -= deltas[i]
-                coe3[j] += deltas[j]
-                coe4[i] -= deltas[i]
-                coe4[j] -= deltas[j]
-                hessian[i, j] = ((
-                    SSD(coe1, (func, args))[0] -
-                    SSD(coe2, (func, args))[0] -
-                    SSD(coe3, (func, args))[0] +
-                    SSD(coe4, (func, args))[0]) /
-                    (4 * deltas[i] * deltas[j]))
-    return 0.5 * hessian
-
-def covariance_matrix(theta, func, args, weightmode=1):
-    """ """
-    cov = nplin.inv(hessian(theta, func, args))
-    if weightmode == 1:
-        errvar = SSD(theta, (func, args))[0] / (args[0].size - theta.size)
-    else:
-        errvar = 1.0
-    return cov * errvar
-
-def approximateSD(theta, func, args):
-    """
-    Calculate approximate standard deviation of the estimates from the inverse
-    of the Hessian matrix ('observed information matrix').
-
-    Parameters
-    ----------
-    theta : array_like, shape (k, )
-        Initial guess.
-    func : callable func(x, args)
-        The objective function to be minimized.
-    args : object
-        Extra arguments passed to func.
-
-    Returns
-    -------
-    approximateSD : ndarray, shape (k,)
-        Approximate SD.
-    """
-    cov = covariance_matrix(theta, func, args)
-    return np.sqrt(cov.diagonal())
-    
-def correlation_matrix(covar):
-    correl = np.zeros((len(covar),len(covar)))
-    for i1 in range(len(covar)):
-        for j1 in range(len(covar)):
-            correl[i1,j1] = (covar[i1,j1] / 
-                np.sqrt(np.multiply(covar[i1,i1],covar[j1,j1])))
-    return correl
             
 def tvalue(ndf):
     """
