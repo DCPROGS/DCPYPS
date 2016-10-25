@@ -1,4 +1,4 @@
-import math
+from math import sqrt, log, pi
 from scipy import stats
 import numpy as np
 
@@ -52,6 +52,85 @@ class Equation(object):
         for name, par in zip(self.names, self.pars):
             txt += "{} = {}\n".format(name, par)
         return txt
+    
+class SSR(Equation):
+    def __init__(self, equation, dataset, pars=None):
+        '''
+        Calculate the sum of the squares of residuals (deviations predicted
+        from actual empirical values of data). It is a measure of the 
+        discrepancy between the data and an estimation model. 
+
+        Parameters
+        ----------
+        func : callable func(x, args)
+            The objective function which calculates predicted values of Y.
+        X, Y, W : ndarrays, shape (n, )
+            x, y and weights of data points.
+        '''
+        self.func = equation.to_fit
+        self.X, self.Y, self.W = dataset.X, dataset.Y, dataset.W
+        self.fixed = equation.fixed
+        self.pars = pars
+        
+    def set_pars(self, pars):
+        self.pars = pars
+        
+    def residuals(self, pars):
+        '''
+        Calculate the weighted residuals.
+
+        Parameters
+        ----------
+        pars : array_like, shape (k, )
+            Function parameters.
+
+        Returns
+        -------
+        residuals : ndarray, shape (n, )
+            Weighted sum of squared deviations.
+        '''
+        
+        return self.W * (self.Y - self.func(self.X, pars))
+    
+    def equation(self, pars):
+        """
+        Calculate weighted sum of squared residuals.
+        
+        Parameters
+        ----------
+        pars : array_like, shape (k, )
+            Function parameters.
+
+        Returns
+        -------
+        SSR : float
+            Weighted sum of squared residuals.
+        """
+        return np.sum(self.residuals(pars)**2)
+    
+    def to_fit(self, theta):
+        self._set_theta(theta)
+        return self.equation(self.pars)
+
+    def loglik(self, pars):
+        """
+        Calculate log likelihood coresponding to the sum of the squared 
+        residuals assuming that errors follow Gausian distribution.
+
+        Parameters
+        ----------
+        pars : array_like, shape (k, )
+            Function parameters.
+
+        Returns
+        -------
+        loglik : float
+            Log likelihood of SSR function.
+        """
+        n = self.X.size
+        S = self.equation(pars)
+        Sres = sqrt(S / float(n)) # - len(func.fixed)))
+        return n * log(sqrt(2 * pi) * Sres) + S / (2 * Sres**2)
     
 
 class GHK(Equation):

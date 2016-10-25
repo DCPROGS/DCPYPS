@@ -5,87 +5,18 @@ from scipy import optimize
 import numpy as np
 from numpy import linalg as nplin
 
-class SSR():
-    def __init__(self, func, XYW):
-        '''
-        Calculate the sum of the squares of residuals (deviations predicted
-        from actual empirical values of data). It is a measure of the 
-        discrepancy between the data and an estimation model. 
-
-        Parameters
-        ----------
-        func : callable func(x, args)
-            The objective function which calculates predicted values of Y.
-        X, Y, W : ndarrays, shape (n, )
-            x, y and weights of data points.
-        '''
-        self.func = func
-        self.X, self.Y, self.W = XYW
-        
-    def residuals(self, pars):
-        '''
-        Calculate the weighted residuals.
-
-        Parameters
-        ----------
-        pars : array_like, shape (k, )
-            Function parameters.
-
-        Returns
-        -------
-        residuals : ndarray, shape (n, )
-            Weighted sum of squared deviations.
-        '''
-        
-        return self.W * (self.Y - self.func(self.X, pars))
-    
-    def SSR(self, pars):
-        """
-        Calculate weighted sum of squared residuals.
-        
-        Parameters
-        ----------
-        pars : array_like, shape (k, )
-            Function parameters.
-
-        Returns
-        -------
-        SSR : float
-            Weighted sum of squared residuals.
-        """
-        return np.sum(self.residuals(pars)**2)
-
-    def loglik(self, pars):
-        """
-        Calculate log likelihood coresponding to the sum of the squared 
-        residuals assuming that errors follow Gausian distribution.
-
-        Parameters
-        ----------
-        pars : array_like, shape (k, )
-            Function parameters.
-
-        Returns
-        -------
-        loglik : float
-            Log likelihood of SSR function.
-        """
-        n = self.X.size
-        S = self.SSR(pars)
-        Sres = sqrt(S / float(n)) # - len(func.fixed)))
-        return n * log(sqrt(2 * pi) * Sres) + S / (2 * Sres**2)
-
 class ObservedInformation(object):
-    def __init__(self, theta, func, *args):
+    def __init__(self, theta, equation, *args):
         self.theta = theta
-        self.func = func
+        self.eq = equation
+        self.func = equation.to_fit
         self.args = args
         self.k = self.theta.size
         self.__calculate_variances()
 
     def __calculate_variances(self):    
         self.hessian = self.__calculate_hessian()
-        weight = self.func(self.theta) / (self.args[0] - self.k)
+        weight = self.func(self.theta) / (self.eq.X.size - self.k)
         self.covariance = nplin.inv(0.5 * self.hessian) * weight 
         self.approximateSD = np.sqrt(self.covariance.diagonal())
         self.correlations = self.__calculate_correlations(self.covariance)
@@ -152,34 +83,21 @@ class ObservedInformation(object):
         return L, new_deltas, count+1
 
 class LikelihoodIntervals(object):
-    def __init__(self, theta, func, *args):
+    def __init__(self, theta, ssr, equation, SD):
         self.theta = theta
-        self.func = func
-        self.args = args
-    
-class EstimateErrors(object):
-    def __init__(self, equation, dataset, approximateSD):
-        self.theta = equation.theta
+        self.eq = ssr
         self.equation = equation
         self.func = equation.to_fit
-        self.dataset = dataset
-        self.XYW = (dataset.X, dataset.Y, dataset.W)
-        self.approximateSD = approximateSD
-        self.__calculate_all()
-         
-    def __calculate_all(self):
-        self.variances()
-        self.__max_crit_likelihoods()
-        self.Llimits = self.lik_intervals()
-                 
-    def variances(self):
+        self.XYW = (ssr.X, ssr.Y, ssr.W)
+        self.SD = SD
         self.kfit = self.theta.size
-        self.ndf = self.dataset.size() - self.kfit
-        self.Smin, self.equation.theta = SSD(self.equation.theta, (self.func,
-            self.XYW))
-        self.var = self.Smin / self.ndf
-        self.Sres = sqrt(self.var)
-        #self.CVs = 100.0 * self.approximateSD / self.theta
+        self.ndf = self.eq.X.size - self.kfit
+        self.__max_crit_likelihoods()
+        self.limits = self.lik_intervals()         
+                 
+#    def variances(self):
+#        self.Smin, self.equation.theta = SSD(self.theta, (self.func, self.XYW))
+#        self.Sres = sqrt(self.Smin / self.ndf)
  
     def SSDlik_contour(self, x, num):
         functemp = copy.deepcopy(self.equation)
@@ -192,26 +110,27 @@ class EstimateErrors(object):
  
     def __max_crit_likelihoods(self):
         self.m = tvalue(self.ndf)**2 / 2.0
-        self.Lmax = -SSDlik(self.theta, self.func, self.XYW)
+        #self.Lmax = -SSDlik(self.theta, self.func, self.XYW)
+        self.Lmax = -self.eq.loglik(self.theta)
         self.clim = sqrt(2. * self.m)
         self.Lcrit = self.Lmax - self.m
          
-    def __liklimits_initial_guesses(self, i):
+    def __initial_guesses(self, i):
          
         xhi1 = self.theta[i]
         #TODO: if parameter constrained to be positive- ensure that xlow is positive
-        xlo1 = self.theta[i] - 2 * self.clim * self.approximateSD[i]
+        xlo1 = self.theta[i] - 2 * self.clim * self.SD[i]
         xlo2 = xhi1
-        xhi2 = self.theta[i] + 5 * self.clim * self.approximateSD[i]
+        xhi2 = self.theta[i] + 5 * self.clim * self.SD[i]
         return xhi1, xlo1, xlo2, xhi2
  
     def lik_intervals(self):
      
         Llimits = []
         i = 0
-        for j in range(len(self.equation.pars)):
+        for j in range(len(self.theta)):
             if not self.equation.fixed[j]:
-                xhi1, xlo1, xlo2, xhi2 = self.__liklimits_initial_guesses(i)
+                xhi1, xlo1, xlo2, xhi2 = self.__initial_guesses(i)
              
                 found = False
                 iter = 0
@@ -299,15 +218,6 @@ def SSDlik(theta, func, args):
     Sres = sqrt(S / float(X.size)) # - len(func.fixed)))
     return X.size * log(sqrt(2 * pi) * Sres) + S / (2 * Sres**2)
 
-def SSDlik_contour(x, num, theta, func, set):
-    functemp = copy.deepcopy(func)
-    functemp.fixed[num] = True
-    functemp.pars[num] = x
-    theta = functemp.theta
-    result = optimize.minimize(SSDlik, theta, args=(functemp.to_fit, set), 
-        method='Nelder-Mead', jac=None, hess=None)
-    return -result.fun
-            
 def tvalue(ndf):
     """
     Return P=0.95 value of Student's t, with ndf degrees of freedom.
@@ -332,64 +242,3 @@ def tvalue(ndf):
     else:
         print(' ERROR IN TVALUE ')
     return tval           
-
-def lik_intervals(theta, SD, func, set):
-    
-    ndf = set[0].size - theta.size
-    m = tvalue(ndf)**2 / 2.0
-    Lmax = -SSDlik(theta, func.to_fit, set)
-    clim = sqrt(2. * m)
-    Lcrit = Lmax - m
-    Llimits = []
-    
-    i = 0
-    for j in range(len(func.pars)):
-        if not func.fixed[j]:
-            #print('\nCalculating Lik limits for parameter- {0} = {1:.3f}'.format(func.names[j], theta[i]))
-            xhigh1 = theta[i]
-            #TODO: if parameter constrained to be positive- ensure that xlow is positive
-            xlow1 = theta[i] - 2 * clim * SD[i]
-            xlow2 = xhigh1
-            xhigh2 = theta[i] + 5 * clim * SD[i]
-            #print('\tInitial guesses for lower limit: {0:.3f} and {1:.3f}'.format(xlow1, xhigh1))
-            #print('\tInitial guesses for higher limit: {0:.3f} and {1:.3f}'.format(xlow2, xhigh2))
-
-            found = False
-            iter = 0
-            xlowlim, xhighlim = None, None
-            while not found and iter < 100: 
-                L = SSDlik_contour(((xlow1 + xhigh1) / 2), j, theta,
-                    func, set) 
-                if fabs(Lcrit - L) > 0.01:
-                    if L < Lcrit:
-                        xlow1 = (xlow1 + xhigh1) / 2
-                    else:
-                        xhigh1 = (xlow1 + xhigh1) / 2
-                else:
-                    found = True
-                    xlowlim = (xlow1 + xhigh1) / 2
-                    if xlowlim < 0:
-                        xlowlim = None
-                    #print 'lower limit found: ', xlowlim
-                iter += 1
-            found = False
-            iter = 0   
-            while not found and iter < 100: 
-                #L1, L2, L3 = SSDlik_bisect(xlow2, xhigh2, j, theta, notfixed, hill_equation, dataset)
-                L = SSDlik_contour(((xlow2 + xhigh2) / 2), j, theta,
-                    func, set) 
-                if fabs(Lcrit - L) > 0.01:
-                    if L > Lcrit:
-                        xlow2 = (xlow2 + xhigh2) / 2
-                    else:
-                        xhigh2 = (xlow2 + xhigh2) / 2
-                else:
-                    found = True
-                    xhighlim = (xlow2 + xhigh2) / 2
-                    if xhighlim < 0:
-                        xhighlim = None
-                    #print 'higher limit found: ', xhighlim
-                iter += 1
-            Llimits.append([xlowlim, xhighlim])
-            i += 1
-    return Llimits
