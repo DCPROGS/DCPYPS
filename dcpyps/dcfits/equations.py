@@ -67,13 +67,13 @@ class SSR(Equation):
         X, Y, W : ndarrays, shape (n, )
             x, y and weights of data points.
         '''
-        self.func = equation.to_fit
+        self.func = equation
         self.X, self.Y, self.W = dataset.X, dataset.Y, dataset.W
+        self.nfit = self.X.size
         self.fixed = equation.fixed
         self.pars = pars
         
-    def set_pars(self, pars):
-        self.pars = pars
+
         
     def residuals(self, pars):
         '''
@@ -90,7 +90,7 @@ class SSR(Equation):
             Weighted sum of squared deviations.
         '''
         
-        return self.W * (self.Y - self.func(self.X, pars))
+        return self.W * (self.Y - self.func.to_fit(self.X, pars))
     
     def equation(self, pars):
         """

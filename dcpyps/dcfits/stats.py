@@ -1,6 +1,5 @@
 import copy
-#import math
-from math import sqrt, log, pi, fabs
+from math import fabs, sqrt
 from scipy import optimize
 import numpy as np
 from numpy import linalg as nplin
@@ -63,7 +62,6 @@ class ObservedInformation(object):
 
     def __optimal_deltas(self):
         """ """
-
         Lcrit = (self.func(self.theta) + fabs(self.func(self.theta)*0.005))
         deltas = 0.001 * self.theta
         L = self.func(self.theta + deltas)
@@ -82,16 +80,13 @@ class ObservedInformation(object):
         L = self.func(self.theta + new_deltas)
         return L, new_deltas, count+1
 
+
 class LikelihoodIntervals(object):
-    def __init__(self, theta, ssr, equation, SD):
-        self.theta = theta
+    def __init__(self, ssr, SD):
         self.eq = ssr
-        self.equation = equation
-        self.func = equation.to_fit
-        self.XYW = (ssr.X, ssr.Y, ssr.W)
         self.SD = SD
-        self.kfit = self.theta.size
-        self.ndf = self.eq.X.size - self.kfit
+        self.kfit = self.eq.pars.size
+        self.ndf = self.eq.nfit - self.kfit
         self.__max_crit_likelihoods()
         self.limits = self.lik_intervals()         
                  
@@ -99,124 +94,63 @@ class LikelihoodIntervals(object):
 #        self.Smin, self.equation.theta = SSD(self.theta, (self.func, self.XYW))
 #        self.Sres = sqrt(self.Smin / self.ndf)
  
-    def SSDlik_contour(self, x, num):
-        functemp = copy.deepcopy(self.equation)
+    def __lik_contour(self, x, num):
+        functemp = copy.deepcopy(self.eq)
         functemp.fixed[num] = True
         functemp.pars[num] = x
         theta = functemp.theta
-        result = optimize.minimize(SSDlik, theta, args=(functemp.to_fit, self.XYW), 
-            method='Nelder-Mead')
+        result = optimize.minimize(functemp.loglik, theta, method='Nelder-Mead')
         return -result.fun
  
     def __max_crit_likelihoods(self):
         self.m = tvalue(self.ndf)**2 / 2.0
         #self.Lmax = -SSDlik(self.theta, self.func, self.XYW)
-        self.Lmax = -self.eq.loglik(self.theta)
+        self.Lmax = -self.eq.loglik(self.eq.pars)
         self.clim = sqrt(2. * self.m)
         self.Lcrit = self.Lmax - self.m
          
     def __initial_guesses(self, i):
-         
-        xhi1 = self.theta[i]
+        xhi1 = self.eq.pars[i]
         #TODO: if parameter constrained to be positive- ensure that xlow is positive
-        xlo1 = self.theta[i] - 2 * self.clim * self.SD[i]
+        xlo1 = self.eq.pars[i] - 2 * self.clim * self.SD[i]
         xlo2 = xhi1
-        xhi2 = self.theta[i] + 5 * self.clim * self.SD[i]
+        xhi2 = self.eq.pars[i] + 5 * self.clim * self.SD[i]
         return xhi1, xlo1, xlo2, xhi2
  
     def lik_intervals(self):
-     
         Llimits = []
         i = 0
-        for j in range(len(self.theta)):
-            if not self.equation.fixed[j]:
+        for j in range(len(self.eq.pars)):
+            if not self.eq.fixed[j]:
                 xhi1, xlo1, xlo2, xhi2 = self.__initial_guesses(i)
-             
-                found = False
-                iter = 0
-                xlowlim, xhighlim = None, None
-                while not found and iter < 100: 
-                    xav1 = (xlo1 + xhi1) / 2
-                    L = self.SSDlik_contour(xav1, j) 
-                    if fabs(self.Lcrit - L) > 0.01:
-                        if L < self.Lcrit:
-                            xlo1 = xav1
-                        else:
-                            xhi1 = xav1
-                    else:
-                        found = True
-                        xlowlim = xav1
-                        if xlowlim < 0:
-                            xlowlim = None
-                        #print 'lower limit found: ', xlowlim
-                    iter += 1
-                found = False
-                iter = 0  
-                while not found and iter < 100: 
-                    #L1, L2, L3 = SSDlik_bisect(xlow2, xhigh2, j, theta, notfixed, hill_equation, dataset)
-                    xav2 = (xlo2 + xhi2) / 2
-                    L = self.SSDlik_contour(xav2, j) 
-                    if fabs(self.Lcrit - L) > 0.01:
-                        if L > self.Lcrit:
-                            xlo2 = xav2
-                        else:
-                            xhi2 = xav2
-                    else:
-                        found = True
-                        xhighlim = xav2
-                        if xhighlim < 0:
-                            xhighlim = None
-                        #print 'higher limit found: ', xhighlim
-                    iter += 1
+                xlowlim = self.__bisect_limit(j, xlo1, xhi1)
+                xhighlim = self.__bisect_limit(j, xhi2, xlo2)
                 Llimits.append([xlowlim, xhighlim])
                 i += 1
         return Llimits
 
-def SSD(pars, args):
-    """
-    Calculate weighted sum of squared deviations.
+    def __bisect_limit(self, j, lo1, hi1):
+        xlo1, xhi1 = lo1, hi1
+        xlowlim = None
+        found = False
+        iter = 0
+        while not found and iter < 100: 
+            xav1 = (xlo1 + xhi1) / 2
+            L = self.__lik_contour(xav1, j) 
+            if fabs(self.Lcrit - L) > 0.01:
+                if L < self.Lcrit:
+                    xlo1 = xav1
+                else:
+                    xhi1 = xav1
+            else:
+                found = True
+                xlowlim = xav1
+                if xlowlim < 0:
+                    xlowlim = None
+                #print 'lower limit found: ', xlowlim
+            iter += 1
+        return xlowlim
 
-    Parameters
-    ----------
-    pars : array_like, shape (k, )
-        Function parameters.
-    func : callable func(x, args)
-        The objective function to be minimized.
-    X, Y, W : ndarrays, shape (n, )
-        x, y and weights of data points.
-
-    Returns
-    -------
-    SSD : float
-        Weighted sum of squared deviations.
-    """
-    func = args[0]
-    X, Y, W = args[1]
-    return np.sum(W * (Y - func(X, pars))**2), pars
-
-def SSDlik(theta, func, args):
-    """
-    Calculate log likelihood coresponding to the sum of the squared deviations
-    assuming that errors follow Gausian distribution.
-
-    Parameters
-    ----------
-    theta : array_like, shape (k, )
-        Initial guess.
-    func : callable func(x, args)
-        The objective function to be minimized.
-    set : cvfit.data.XYDataSet type object
-        Extra argument passed to func.
-
-    Returns
-    -------
-    SSDlik : float
-        Log likelihood of SSD function.
-    """
-    X, Y, W = args[0], args[1], args[2]
-    S, theta = SSD(theta, (func, (X, Y, W)))
-    Sres = sqrt(S / float(X.size)) # - len(func.fixed)))
-    return X.size * log(sqrt(2 * pi) * Sres) + S / (2 * Sres**2)
 
 def tvalue(ndf):
     """
