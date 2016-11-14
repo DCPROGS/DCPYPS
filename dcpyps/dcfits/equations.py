@@ -1,4 +1,4 @@
-from math import sqrt, log, pi
+from math import sqrt, log, pi, ceil
 from scipy import stats
 import numpy as np
 
@@ -71,6 +71,7 @@ class SSR(Equation):
         self.X, self.Y, self.W = dataset.X, dataset.Y, dataset.W
         self.nfit = self.X.size
         self.fixed = equation.fixed
+        self.kfit = len(self.fixed) - np.sum(self.fixed)
         self.pars = pars
         
 
@@ -127,10 +128,10 @@ class SSR(Equation):
         loglik : float
             Log likelihood of SSR function.
         """
-        n = self.X.size
+        #n = self.X.size
         S = self.equation(pars)
-        Sres = sqrt(S / float(n)) # - len(func.fixed)))
-        return n * log(sqrt(2 * pi) * Sres) + S / (2 * Sres**2)
+        Sres = sqrt(S / float(self.nfit)) # - len(func.fixed)))
+        return self.nfit * log(sqrt(2 * pi) * Sres) + S / (2 * Sres**2)
     
 
 class GHK(Equation):
@@ -193,29 +194,77 @@ class Linear(Equation):
         plotY = self.equation(plotX, coeff)
         return plotX, plotY
 
-    
-class ExponentialPDF(Equation):
-    def __init__(self, eqname='ExpPDF', pars=None, ncomp=1):
-        self.eqname = eqname
-        self.ncomp = ncomp
-        self.pars = pars
-        self.fixed = [False, False] * ncomp
-        self.fixed[-1] = True
-        self.names = ['tau', 'area']
-    
-    def equation(self, theta, X):
-        tau, area = self.theta_unsqueeze(theta)
-        X = np.asarray(X)
-        y = np.array([])
-        for t in np.nditer(X):
-            y = np.append(y, np.sum((area / tau) * np.exp(-t / tau)))
-        return y
 
-    def theta_unsqueeze(self, theta):
-        theta = np.asarray(theta)
-        tau, area = np.split(theta, [int(math.ceil(len(theta) / 2))])
-        area = np.append(area, 1 - np.sum(area))
-        return tau, area
+class MultiExponentialPDF(Equation):
+    def __init__(self, dataset, taus=None, areas=None, eqname='ExpPDF'):
+        self.X = dataset # numpy array
+        self.nfit = self.X.size
+        self.eqname = eqname
+        self.fixed = None
+        self.set_pars(taus, areas)
+        
+    def set_pars(self, taus, areas, fixed=None):
+        self.taus = taus
+        self.areas = areas
+        if taus is not None:
+            self.ncomp = len(taus)
+            if areas is None:
+                pass
+            elif len(areas) == len(taus) - 1:
+                self.areas = np.append(self.areas, 1 - np.sum(areas))
+            if fixed is None and self.fixed is None:
+                self.fixed = [False, False] * self.ncomp
+                self.fixed[-1] = True
+        #self.names = ['tau', 'area']
+        self.kfit = len(self.fixed) - np.sum(self.fixed)
+        self.pars = np.append(self.taus, self.areas)
+        print('pars=', self.pars)
+        
+    def to_fit(self, theta):
+        self.__theta_unsqueeze(theta)
+        return self.equation(self.taus, self.areas)
+        
+    def equation(self, taus, areas):
+        #tau, area = self.__pars_unsqueeze(pars)
+        #print('tau=', tau)
+        #print('area=', area)
+        y = np.array([])
+        for t in np.nditer(self.X):
+            y = np.append(y, np.sum((areas / taus) * np.exp(-t / taus)))
+        return y
+    
+    def loglik(self, theta):
+        self.__theta_unsqueeze(theta)
+        self.taus[self.taus < 1.0e-30] = 1e-8
+        self.areas[self.areas > 1.0] = 0.99999
+        self.areas[self.areas < 0.0] = 1e-6
+        if np.sum(self.areas[:-1]) >= 1: 
+            self.areas[:-1] = 0.99 * self.areas[:-1] / np.sum(self.areas[:-1])
+        self.areas[-1] = 1 - np.sum(self.areas[:-1])
+        d = np.sum( self.areas * (np.exp(-min(self.X) / self.taus) - np.exp(-max(self.X)/ self.taus)))
+        if d < 1.e-37:
+            print (' ERROR in EXPLIK: d = ', d)
+        s = 0.0
+        for t in np.nditer(self.X):
+            s -= log(np.sum((self.areas / self.taus) * np.exp(-t / self.taus)))
+        #theta = np.append(tau, area[:-1])
+        return s + len(self.X) * log(d) #, theta
+
+    def __theta_unsqueeze(self, theta):
+        #print('taus=', self.taus)
+        #print('areas=', self.areas)
+        pars = []
+        pars.extend(self.taus)
+        pars.extend(self.areas)
+        #print ('pars=', pars)
+        #print ('fixed=', self.fixed)
+        expanded = theta
+        for each in np.nonzero(self.fixed)[0]: 
+            #print('each=', each)
+            expanded = np.insert(expanded, each, pars[each])
+        self.taus, self.areas = np.split(np.asarray(expanded), 2)
+        self.areas[-1] = 1 - np.sum(self.areas[:-1])
+
 
 class Exponential(Equation):
     def __init__(self, eqname, pars=None):

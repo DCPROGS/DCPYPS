@@ -5,17 +5,19 @@ import numpy as np
 from numpy import linalg as nplin
 
 class ObservedInformation(object):
-    def __init__(self, theta, equation, *args):
+    def __init__(self, theta, equation, func, *args):
         self.theta = theta
         self.eq = equation
-        self.func = equation.to_fit
+        #self.func = equation.to_fit
+        self.func = func
         self.args = args
-        self.k = self.theta.size
+        #self.k = self.theta.size
         self.__calculate_variances()
 
     def __calculate_variances(self):    
         self.hessian = self.__calculate_hessian()
-        weight = self.func(self.theta) / (self.eq.X.size - self.k)
+        #weight = self.func(self.theta) / (self.eq.X.size - self.k)
+        weight = self.func(self.theta) / (self.eq.nfit - self.eq.kfit)
         self.covariance = nplin.inv(0.5 * self.hessian) * weight 
         self.approximateSD = np.sqrt(self.covariance.diagonal())
         self.correlations = self.__calculate_correlations(self.covariance)
@@ -31,18 +33,18 @@ class ObservedInformation(object):
     def __calculate_hessian(self):
         """
         """
-        hess = np.zeros((self.k, self.k))
+        hess = np.zeros((self.eq.kfit, self.eq.kfit))
         deltas = self.__optimal_deltas()
         # Diagonal elements of Hessian
-        coe11 = np.array([self.theta.copy(), ] * self.k) + np.diag(deltas)
-        coe33 = np.array([self.theta.copy(), ] * self.k) - np.diag(deltas)
-        for i in range(self.k):
+        coe11 = np.array([self.theta.copy(), ] * self.eq.kfit) + np.diag(deltas)
+        coe33 = np.array([self.theta.copy(), ] * self.eq.kfit) - np.diag(deltas)
+        for i in range(self.eq.kfit):
             hess[i, i] = ((self.func(coe11[i]) - 
                 2.0 * self.func(self.theta) +
                 self.func(coe33[i])) / (deltas[i]  ** 2))
         # Non diagonal elements of Hessian
-        for i in range(self.k):
-            for j in range(self.k):
+        for i in range(self.eq.kfit):
+            for j in range(self.eq.kfit):
                 coe1, coe2 = self.theta.copy(), self.theta.copy()
                 coe3, coe4 = self.theta.copy(), self.theta.copy()
                 if i != j:                
@@ -62,6 +64,7 @@ class ObservedInformation(object):
 
     def __optimal_deltas(self):
         """ """
+        print('theta=', self.theta)
         Lcrit = (self.func(self.theta) + fabs(self.func(self.theta)*0.005))
         deltas = 0.001 * self.theta
         L = self.func(self.theta + deltas)
@@ -82,13 +85,15 @@ class ObservedInformation(object):
 
 
 class LikelihoodIntervals(object):
-    def __init__(self, ssr, SD):
-        self.eq = ssr
+    def __init__(self, theta, equation, SD):
+        self.theta = theta
+        print('theta=', self.theta)
+        self.eq = equation
         self.SD = SD
-        self.kfit = self.eq.pars.size
-        self.ndf = self.eq.nfit - self.kfit
-        self.__max_crit_likelihoods()
-        self.limits = self.lik_intervals()         
+        print('SD=', self.SD)
+        
+        self.limits = self.lik_intervals()   
+        print('limits=', self.limits)
                  
 #    def variances(self):
 #        self.Smin, self.equation.theta = SSD(self.theta, (self.func, self.XYW))
@@ -97,32 +102,41 @@ class LikelihoodIntervals(object):
     def __lik_contour(self, x, num):
         functemp = copy.deepcopy(self.eq)
         functemp.fixed[num] = True
+        print('temp fixed = ', functemp.fixed)
         functemp.pars[num] = x
         theta = functemp.theta
+        print('temp pars = ', functemp.theta)
         result = optimize.minimize(functemp.loglik, theta, method='Nelder-Mead')
         return -result.fun
  
     def __max_crit_likelihoods(self):
-        self.m = tvalue(self.ndf)**2 / 2.0
+        self.m = tvalue(self.eq.nfit - self.eq.kfit)**2 / 2.0
+        print('m=', self.m)
         #self.Lmax = -SSDlik(self.theta, self.func, self.XYW)
-        self.Lmax = -self.eq.loglik(self.eq.pars)
+        self.Lmax = -self.eq.loglik(self.theta)
+        print('Lmax=', self.Lmax)
         self.clim = sqrt(2. * self.m)
         self.Lcrit = self.Lmax - self.m
+        print('Lcrit=', self.Lcrit)
          
     def __initial_guesses(self, i):
-        xhi1 = self.eq.pars[i]
+        xhi1 = self.theta[i]
         #TODO: if parameter constrained to be positive- ensure that xlow is positive
-        xlo1 = self.eq.pars[i] - 2 * self.clim * self.SD[i]
+        xlo1 = self.theta[i] - 2 * self.clim * self.SD[i]
         xlo2 = xhi1
-        xhi2 = self.eq.pars[i] + 5 * self.clim * self.SD[i]
+        xhi2 = self.theta[i] + 5 * self.clim * self.SD[i]
         return xhi1, xlo1, xlo2, xhi2
  
     def lik_intervals(self):
+        self.__max_crit_likelihoods()
         Llimits = []
         i = 0
-        for j in range(len(self.eq.pars)):
+        for j in range(len(self.theta)):
+            print('j=', j)
+            print('fixed=', self.eq.fixed)
             if not self.eq.fixed[j]:
                 xhi1, xlo1, xlo2, xhi2 = self.__initial_guesses(i)
+                print('initial guesses=', xhi1, xlo1, xlo2, xhi2)
                 xlowlim = self.__bisect_limit(j, xlo1, xhi1)
                 xhighlim = self.__bisect_limit(j, xhi2, xlo2)
                 Llimits.append([xlowlim, xhighlim])
@@ -137,7 +151,9 @@ class LikelihoodIntervals(object):
         while not found and iter < 100: 
             xav1 = (xlo1 + xhi1) / 2
             L = self.__lik_contour(xav1, j) 
+            print('L=', L)
             if fabs(self.Lcrit - L) > 0.01:
+                #print('diff=', fabs(self.Lcrit - L))
                 if L < self.Lcrit:
                     xlo1 = xav1
                 else:

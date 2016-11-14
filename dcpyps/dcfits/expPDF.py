@@ -376,15 +376,15 @@ def test_fit_10_open_simult(conc, csvfile, tau_ig):
     
 if __name__ == "__main__":
     
-    #datadir = '../samples/etc/EKDIST_patches'
+    datadir = '../samples/etc/EKDIST_patches'
     csvfile = '../samples/etc/EKDIST_patches/EKDIST_patches.csv'
-    conc = 100
+    conc = 10
     #Initial guess of Tau
     tau_ig1 = [1.38E-05,9.85E-05,3.35E-04,2.48E-03]
     tau_ig1a = [1.38E-05,10.9E-05,2.85E-04,2.7E-03]
     tau_ig2 = [14E-05,3.9E-04,2.1E-03]
-    test_fit_10_open_simult(conc, csvfile, tau_ig2)
-    #test_fit_10_shuts_independent(conc, datadir)
+    #test_fit_10_open_simult(conc, csvfile, tau_ig2)
+    test_fit_10_shuts_independent(conc, datadir)
     
 #    tau_ig1 = [2.31469875e-05 ,  7.79896578e-04  , 6.73495738e-03  , 1.18752898e-01]
 #    theta = np.append(tau_ig1[:], [1 / ncomp] * (ncomp - 1) * len(recs))
