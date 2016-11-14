@@ -44,9 +44,9 @@ def test_MultiExponentialPDF_class():
     assert_almost_equal(errs.approximateSD[1], 0.15042035132630516, delta = 1e-6)
     assert_almost_equal(errs.approximateSD[2], 0.05795821682555078, delta = 1e-6)
     
-    #from dcpyps.dcfits.stats import LikelihoodIntervals
-    #ll = LikelihoodIntervals(res.x, expPDF, errs.approximateSD)
-    #assert_almost_equal(ll.limits[0][1], 16.001557908087079, delta = 1e-9)
-    #assert_almost_equal(ll.limits[1][0], 1.4776049294397993, delta = 1e-9)
-    #assert_almost_equal(ll.limits[1][1], 8.9233105381283568, delta = 1e-9)
+    from dcpyps.dcfits.stats import LikelihoodIntervals
+    ll = LikelihoodIntervals(res.x, expPDF, errs.approximateSD)
+    assert_almost_equal(ll.limits[0][1], 0.070114011621299849, delta = 1e-9)
+    assert_almost_equal(ll.limits[1][0], 0.8622730686805774, delta = 1e-9)
+    assert_almost_equal(ll.limits[1][1], 1.3810940132669089, delta = 1e-9)
     

@@ -2698,18 +2698,13 @@ def txt_load_one_col(filename):
     """"
     Read one column of data from a text file.
     """
-
     f = open(filename, 'r')
     lines = f.readlines()
     f.close()
     data = []
     for line in lines:
         if line != '\n':
-            value = float(line.strip("\t\n"))    #divide lines into values at tabs
-#            print 'value=', value
+            value = float(line.strip("\t\n"))
             data.append(value)
-
-    print ("number of original intervals =", len(lines))
-    print ("number of useful intervals =", len(data))
     return data
 

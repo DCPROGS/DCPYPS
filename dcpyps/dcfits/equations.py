@@ -218,23 +218,19 @@ class MultiExponentialPDF(Equation):
         #self.names = ['tau', 'area']
         self.kfit = len(self.fixed) - np.sum(self.fixed)
         self.pars = np.append(self.taus, self.areas)
-        print('pars=', self.pars)
         
     def to_fit(self, theta):
-        self.__theta_unsqueeze(theta)
+        self._set_theta(theta)
         return self.equation(self.taus, self.areas)
         
     def equation(self, taus, areas):
-        #tau, area = self.__pars_unsqueeze(pars)
-        #print('tau=', tau)
-        #print('area=', area)
         y = np.array([])
         for t in np.nditer(self.X):
             y = np.append(y, np.sum((areas / taus) * np.exp(-t / taus)))
         return y
     
     def loglik(self, theta):
-        self.__theta_unsqueeze(theta)
+        self._set_theta(theta)
         self.taus[self.taus < 1.0e-30] = 1e-8
         self.areas[self.areas > 1.0] = 0.99999
         self.areas[self.areas < 0.0] = 1e-6
@@ -247,23 +243,24 @@ class MultiExponentialPDF(Equation):
         s = 0.0
         for t in np.nditer(self.X):
             s -= log(np.sum((self.areas / self.taus) * np.exp(-t / self.taus)))
-        #theta = np.append(tau, area[:-1])
         return s + len(self.X) * log(d) #, theta
 
-    def __theta_unsqueeze(self, theta):
-        #print('taus=', self.taus)
-        #print('areas=', self.areas)
-        pars = []
-        pars.extend(self.taus)
-        pars.extend(self.areas)
-        #print ('pars=', pars)
-        #print ('fixed=', self.fixed)
-        expanded = theta
-        for each in np.nonzero(self.fixed)[0]: 
-            #print('each=', each)
-            expanded = np.insert(expanded, each, pars[each])
-        self.taus, self.areas = np.split(np.asarray(expanded), 2)
+    def _expand_pars(self):
+        self.taus, self.areas = np.split(np.asarray(self.pars), 2)
         self.areas[-1] = 1 - np.sum(self.areas[:-1])
+
+    def _set_theta(self, theta):
+        for each in np.nonzero(self.fixed)[0]:   
+            theta = np.insert(theta, each, self.pars[each])
+        self.pars = theta
+        self._expand_pars()
+    def _get_theta(self):
+        theta = self.pars[np.nonzero(np.invert(self.fixed))[0]]
+        if isinstance(theta, float):
+            theta = np.array([theta])
+        self._expand_pars()
+        return theta
+    theta = property(_get_theta, _set_theta)
 
 
 class Exponential(Equation):

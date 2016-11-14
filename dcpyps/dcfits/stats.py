@@ -64,7 +64,6 @@ class ObservedInformation(object):
 
     def __optimal_deltas(self):
         """ """
-        print('theta=', self.theta)
         Lcrit = (self.func(self.theta) + fabs(self.func(self.theta)*0.005))
         deltas = 0.001 * self.theta
         L = self.func(self.theta + deltas)
@@ -87,38 +86,33 @@ class ObservedInformation(object):
 class LikelihoodIntervals(object):
     def __init__(self, theta, equation, SD):
         self.theta = theta
-        print('theta=', self.theta)
         self.eq = equation
         self.SD = SD
-        print('SD=', self.SD)
-        
         self.limits = self.lik_intervals()   
-        print('limits=', self.limits)
                  
 #    def variances(self):
 #        self.Smin, self.equation.theta = SSD(self.theta, (self.func, self.XYW))
 #        self.Sres = sqrt(self.Smin / self.ndf)
- 
-    def __lik_contour(self, x, num):
-        functemp = copy.deepcopy(self.eq)
-        functemp.fixed[num] = True
-        print('temp fixed = ', functemp.fixed)
-        functemp.pars[num] = x
-        theta = functemp.theta
-        print('temp pars = ', functemp.theta)
-        result = optimize.minimize(functemp.loglik, theta, method='Nelder-Mead')
-        return -result.fun
- 
+  
+    def lik_intervals(self):
+        self.__max_crit_likelihoods()
+        Llimits = []
+        i = 0
+        for j in range(len(self.theta)):
+            if not self.eq.fixed[j]:
+                xhi1, xlo1, xlo2, xhi2 = self.__initial_guesses(i)
+                xlowlim = self.__bisect_limit(j, xlo1, xhi1)
+                xhighlim = self.__bisect_limit(j, xhi2, xlo2)
+                Llimits.append([xlowlim, xhighlim])
+                i += 1
+        return Llimits
+
     def __max_crit_likelihoods(self):
         self.m = tvalue(self.eq.nfit - self.eq.kfit)**2 / 2.0
-        print('m=', self.m)
-        #self.Lmax = -SSDlik(self.theta, self.func, self.XYW)
         self.Lmax = -self.eq.loglik(self.theta)
-        print('Lmax=', self.Lmax)
         self.clim = sqrt(2. * self.m)
         self.Lcrit = self.Lmax - self.m
-        print('Lcrit=', self.Lcrit)
-         
+
     def __initial_guesses(self, i):
         xhi1 = self.theta[i]
         #TODO: if parameter constrained to be positive- ensure that xlow is positive
@@ -126,22 +120,6 @@ class LikelihoodIntervals(object):
         xlo2 = xhi1
         xhi2 = self.theta[i] + 5 * self.clim * self.SD[i]
         return xhi1, xlo1, xlo2, xhi2
- 
-    def lik_intervals(self):
-        self.__max_crit_likelihoods()
-        Llimits = []
-        i = 0
-        for j in range(len(self.theta)):
-            print('j=', j)
-            print('fixed=', self.eq.fixed)
-            if not self.eq.fixed[j]:
-                xhi1, xlo1, xlo2, xhi2 = self.__initial_guesses(i)
-                print('initial guesses=', xhi1, xlo1, xlo2, xhi2)
-                xlowlim = self.__bisect_limit(j, xlo1, xhi1)
-                xhighlim = self.__bisect_limit(j, xhi2, xlo2)
-                Llimits.append([xlowlim, xhighlim])
-                i += 1
-        return Llimits
 
     def __bisect_limit(self, j, lo1, hi1):
         xlo1, xhi1 = lo1, hi1
@@ -150,10 +128,8 @@ class LikelihoodIntervals(object):
         iter = 0
         while not found and iter < 100: 
             xav1 = (xlo1 + xhi1) / 2
-            L = self.__lik_contour(xav1, j) 
-            print('L=', L)
+            L = -self.__lik_contour(xav1, j) 
             if fabs(self.Lcrit - L) > 0.01:
-                #print('diff=', fabs(self.Lcrit - L))
                 if L < self.Lcrit:
                     xlo1 = xav1
                 else:
@@ -167,6 +143,14 @@ class LikelihoodIntervals(object):
             iter += 1
         return xlowlim
 
+    def __lik_contour(self, x, num):
+        functemp = copy.deepcopy(self.eq)
+        functemp.fixed[num] = True
+        functemp.pars[num] = x
+        theta = functemp.theta
+        result = optimize.minimize(functemp.loglik, theta, method='Nelder-Mead')
+        return result.fun
+         
 
 def tvalue(ndf):
     """
