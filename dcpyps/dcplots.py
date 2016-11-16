@@ -66,7 +66,7 @@ def xlog_hist_EXP_fit(ax, tres, X=None, pdf=None, pars=None, shut=True,
     area = np.append(area, 1 - np.sum(area))
 
     scale = 1.0
-    if X:
+    if X is not None:
         tout, yout, dt = prepare_xlog_hist(X, tres)
         ax.semilogx(tout, np.sqrt(yout))
         scale = (len(X) * math.log10(dt) * math.log(10) *
@@ -84,6 +84,32 @@ def xlog_hist_EXP_fit(ax, tres, X=None, pdf=None, pars=None, shut=True,
         
     ax.set_xlabel('Apparent {0} periods ({1})'.
         format('shut' if shut else 'open', unit))
+    ax.set_ylabel('Square root of frequency density')
+    
+def xlog_hist_expPDF(ax, tres, pdf, shut=True, tcrit=None, unit='s'):
+    """
+    Plot dwell time histogram and multi-exponential pdf with single 
+    components in log x and square root y.
+    """
+    
+    scale = 1.0
+    tout, yout, dt = prepare_xlog_hist(pdf.X, tres)
+    ax.semilogx(tout, np.sqrt(yout))
+    scale = (len(pdf.X) * math.log10(dt) * math.log(10) *
+        (1 / np.sum(pdf.areas * np.exp(-tres / pdf.taus))))
+        
+    t = np.logspace(math.log10(tres), math.log10(2 * max(pdf.X)), 512)
+    y = pdf.to_plot(t)
+    ax.plot(t, np.sqrt(scale * t * y), '-b')
+    for ta, ar in zip(pdf.taus, pdf.areas):
+        ax.plot(t, np.sqrt(scale * t * (ar / ta) * np.exp(-t / ta)), '--b')
+        
+    if tcrit is not None:
+        tcrit = np.asarray(tcrit)
+        for tc in tcrit:
+            ax.axvline(x=tc, color='g')
+        
+    ax.set_xlabel('Apparent periods ({0})'.format(unit))
     ax.set_ylabel('Square root of frequency density')
     
 def prepare_xlog_hist(X, tres):

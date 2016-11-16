@@ -81,6 +81,10 @@ class ObservedInformation(object):
         new_deltas = deltas * factor
         L = self.func(self.theta + new_deltas)
         return L, new_deltas, count+1
+    
+    def print_errs(self):
+        for par, sd in zip(self.theta, self.approximateSD):
+            print('Par: {0:.6f}; approximate SD = {1:.6f}'.format(par, sd))
 
 
 class LikelihoodIntervals(object):
@@ -150,6 +154,12 @@ class LikelihoodIntervals(object):
         theta = functemp.theta
         result = optimize.minimize(functemp.loglik, theta, method='Nelder-Mead')
         return result.fun
+    
+    def print_intervals(self):
+        for par, sd, lims in zip(self.theta, self.SD, self.limits):
+            print('Par: {0:.6f}; approximate SD = {1:.6f}: '.format(par, sd) +
+                'lower limit = {0:.6f}; upper limit = {1:.6f}'.
+                format(lims[0], lims[1]))
          
 
 def tvalue(ndf):

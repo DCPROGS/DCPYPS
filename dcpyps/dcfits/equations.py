@@ -222,11 +222,17 @@ class MultiExponentialPDF(Equation):
     def to_fit(self, theta):
         self._set_theta(theta)
         return self.equation(self.taus, self.areas)
-        
+    
     def equation(self, taus, areas):
         y = np.array([])
         for t in np.nditer(self.X):
             y = np.append(y, np.sum((areas / taus) * np.exp(-t / taus)))
+        return y
+    
+    def to_plot(self, t):
+        y = np.array([])
+        for ti in np.nditer(t):
+            y = np.append(y, np.sum((self.areas / self.taus) * np.exp(-ti / self.taus)))
         return y
     
     def loglik(self, theta):
@@ -261,6 +267,30 @@ class MultiExponentialPDF(Equation):
         self._expand_pars()
         return theta
     theta = property(_get_theta, _set_theta)
+    
+    def __number_per_comp(self):
+        f1 = np.sum(self.areas * np.exp(-min(self.X) / self.taus))  #Prob(obs>ylow)
+        f2 = np.sum(self.areas * np.exp(-max(self.X) / self.taus))  #Prob(obs>yhigh)
+        antrue = len(self.X) / (f1 - f2)
+        en = antrue * self.areas
+        enout = [antrue * (1. - f1), antrue * f2]
+        return en, enout
+    
+    def __repr__(self):
+        repstring = ''
+        numb, numout = self.__number_per_comp()
+        for ta, ar, nu in zip(self.taus, self.areas, numb):
+            repstring += ('Tau = {0:.6f}; lambda (1/s)= {1:.6f}\n'.
+                format(ta, 1.0 / ta))
+            repstring += ('Area= {0:.6f}; number = {1:.3f};'.format(ar, nu) +
+                'amplitude (1/s) = {0:.3f}\n'.format(ar / ta))
+        mean = np.sum(self.areas * self.taus)
+        repstring += '\nOverall mean = {0:.6f}\n'.format(mean)
+        repstring += 'Predicted true number of events = {0:d}\n'.format(int(np.sum(numb)))
+        repstring += 'Number of fitted = {0:d}\n'.format(len(self.X))
+        repstring += ('Number below Ylow = {0:.3f}; '.format(numout[0]) + 
+            'number above Yhigh = {0:.3f}\n'.format(numout[1]))
+        return repstring
 
 
 class Exponential(Equation):
