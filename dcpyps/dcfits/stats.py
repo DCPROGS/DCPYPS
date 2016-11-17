@@ -5,24 +5,31 @@ import numpy as np
 from numpy import linalg as nplin
 
 class ObservedInformation(object):
+    """
+    Approximate standard deviations of estimated values are calculated using
+    the observed information matrix. The observed information, or observed
+    Fisher information, is the negative of the second derivative (the Hessian
+    matrix) of the "log-likelihood".
+    """
     def __init__(self, theta, equation, func, *args):
         self.theta = theta
         self.eq = equation
-        #self.func = equation.to_fit
         self.func = func
         self.args = args
-        #self.k = self.theta.size
         self.__calculate_variances()
 
-    def __calculate_variances(self):    
+    def __calculate_variances(self):
+        """ """
         self.hessian = self.__calculate_hessian()
-        #weight = self.func(self.theta) / (self.eq.X.size - self.k)
         weight = self.func(self.theta) / (self.eq.nfit - self.eq.kfit)
         self.covariance = nplin.inv(0.5 * self.hessian) * weight 
         self.approximateSD = np.sqrt(self.covariance.diagonal())
         self.correlations = self.__calculate_correlations(self.covariance)
         
     def __calculate_correlations(self, covar):
+        """
+        Compute correlation matrix.
+        """
         correl = np.zeros((len(covar),len(covar)))
         for i1 in range(len(covar)):
             for j1 in range(len(covar)):
@@ -32,6 +39,7 @@ class ObservedInformation(object):
 
     def __calculate_hessian(self):
         """
+        Compute Hessian matrix.
         """
         hess = np.zeros((self.eq.kfit, self.eq.kfit))
         deltas = self.__optimal_deltas()
@@ -78,27 +86,37 @@ class ObservedInformation(object):
         return deltas
 
     def __change_L(self, factor, deltas, count):
+        """ """
         new_deltas = deltas * factor
         L = self.func(self.theta + new_deltas)
         return L, new_deltas, count+1
     
     def print_errs(self):
+        """ """
         for par, sd in zip(self.theta, self.approximateSD):
             print('Par: {0:.6f}; approximate SD = {1:.6f}'.format(par, sd))
 
 
 class LikelihoodIntervals(object):
+    """The most likely values of the parameters are those that correspond to
+    maximal log-likelihood, Lmax. The likelihood intervals for for a particular
+    parameter are estimated by holding that parameter at a fixed value away
+    from Lmax and repeating the fit with all other parameters free to vary. 
+    Log-likelihood value so achieved, Lcrit, is less than Lmax. Lcrit is 
+    obtained for two values of the parameter, one above and one below its 
+    maximum likelihood estimate. These upper and lower limits are usually 
+    asymmetrical to the best fit value. 
+    """
     def __init__(self, theta, equation, SD):
         self.theta = theta
         self.eq = equation
         self.SD = SD
         self.limits = self.lik_intervals()   
                  
-#    def variances(self):
-#        self.Smin, self.equation.theta = SSD(self.theta, (self.func, self.XYW))
-#        self.Sres = sqrt(self.Smin / self.ndf)
-  
     def lik_intervals(self):
+        """
+        Calculate upper and lower limits for all free parameters.
+        """
         self.__max_crit_likelihoods()
         Llimits = []
         i = 0
@@ -112,12 +130,19 @@ class LikelihoodIntervals(object):
         return Llimits
 
     def __max_crit_likelihoods(self):
+        """Set critical likelihood at 0.5-unit interval (corresponding to one
+        standard error).
+        """
+        #TODO: take input to how specify m
         self.m = tvalue(self.eq.nfit - self.eq.kfit)**2 / 2.0
         self.Lmax = -self.eq.loglik(self.theta)
-        self.clim = sqrt(2. * self.m)
+        self.clim = sqrt(2. * self.m)    # equivalent to SD for Gaussian
         self.Lcrit = self.Lmax - self.m
 
     def __initial_guesses(self, i):
+        """
+        Get initial limits for bisection. 
+        """
         xhi1 = self.theta[i]
         #TODO: if parameter constrained to be positive- ensure that xlow is positive
         xlo1 = self.theta[i] - 2 * self.clim * self.SD[i]
@@ -126,6 +151,7 @@ class LikelihoodIntervals(object):
         return xhi1, xlo1, xlo2, xhi2
 
     def __bisect_limit(self, j, lo1, hi1):
+        """ """
         xlo1, xhi1 = lo1, hi1
         xlowlim = None
         found = False
@@ -143,11 +169,11 @@ class LikelihoodIntervals(object):
                 xlowlim = xav1
                 if xlowlim < 0:
                     xlowlim = None
-                #print 'lower limit found: ', xlowlim
             iter += 1
         return xlowlim
 
     def __lik_contour(self, x, num):
+        """ """
         functemp = copy.deepcopy(self.eq)
         functemp.fixed[num] = True
         functemp.pars[num] = x
@@ -156,6 +182,7 @@ class LikelihoodIntervals(object):
         return result.fun
     
     def print_intervals(self):
+        """ """
         for par, sd, lims in zip(self.theta, self.SD, self.limits):
             print('Par: {0:.6f}; approximate SD = {1:.6f}: '.format(par, sd) +
                 'lower limit = {0:.6f}; upper limit = {1:.6f}'.
