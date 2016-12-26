@@ -6,7 +6,7 @@ __date__ = "$22-Mar-2016 14:27:44$"
 import numpy as np
 from nose.tools import assert_almost_equal
 
-from dcpyps.dcfits.data import XYDataSet
+from dcpyps.dcfits.dataIO import XYDataSet
 from dcpyps.dcfits.equations import SSR
 from dcpyps.dcfits.simplex import Simplex
 from dcpyps.dcfits.equations import Linear

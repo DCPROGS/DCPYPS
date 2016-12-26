@@ -53,7 +53,7 @@ def hessian(theta, LLfunc, args):
 
 def optimal_deltas(theta, LLfunc, args):
     """ """
-
+          
     Lcrit = LLfunc(theta, args) + math.fabs(LLfunc(theta, args)*0.005)
     deltas = 0.001 * theta
     L = LLfunc(theta + deltas, args)

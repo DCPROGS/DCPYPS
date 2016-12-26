@@ -1,4 +1,4 @@
-from math import sqrt, log, pi, ceil
+from math import sqrt, log, pi, ceil, isnan
 from scipy import stats
 import numpy as np
 
@@ -389,12 +389,12 @@ class Hill(Equation):
         LinRegressY = np.log10(ratio / (1 - ratio))
         slope, intercept, r_value, p_value, std_err = stats.linregress(
             LinRegressX, LinRegressY)
-        if math.isnan(slope):
+        if isnan(slope):
             self.guess[3] = 1.0 if data.increase else -1.0
         else:
             self.guess[3] = slope
         if self.eqname == 'Langmuir':
-            self.guess[3] = slope / math.fabs(slope)
+            self.guess[3] = slope / fabs(slope)
 #        elif self.Component == 2:
 #            print 'Two Components fitting is not completed.'
 #            sys.exit(0)

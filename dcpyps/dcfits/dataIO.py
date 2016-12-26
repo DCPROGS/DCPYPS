@@ -129,7 +129,7 @@ class XYDataSet(object):
         return str
     
     
-def read_sets_from_Excel(fname, set_col=0, line_skip=0, sheet=0):
+def read_sets_from_Excel(fname, sheet=0, skip_lines=0, set_cols=0):
     """
     Read Excel file sheet to load data.
     """
@@ -137,16 +137,16 @@ def read_sets_from_Excel(fname, set_col=0, line_skip=0, sheet=0):
     wb = xlrd.open_workbook(fname)
     s = wb.sheet_by_index(sheet)
     setlist = []
-    for i in range(int(s.ncols / set_col)):
+    for i in range(int(s.ncols / set_cols)):
         X, Y, S = [], [], []
-        if set_col == 2:
-            for cell1, cell2 in zip(s.col_slice(i*set_col, start_rowx=line_skip), s.col_slice(i*set_col+1, start_rowx=line_skip)):
+        if set_cols == 2:
+            for cell1, cell2 in zip(s.col_slice(i*set_cols, start_rowx=skip_lines), s.col_slice(i*set_cols+1, start_rowx=skip_lines)):
                 if cell1.ctype not in (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_BLANK):
                     X.append(cell1.value), Y.append(cell2.value), S.append(0)
-        if set_col == 3:
-            for cell1, cell2, cell3 in zip(s.col_slice(i*set_col, start_rowx=line_skip),
-                s.col_slice(i*set_col+1, start_rowx=line_skip),
-                s.col_slice(i*set_col+2, start_rowx=line_skip)):
+        if set_cols == 3:
+            for cell1, cell2, cell3 in zip(s.col_slice(i*set_cols, start_rowx=skip_lines),
+                s.col_slice(i*set_cols+1, start_rowx=skip_lines),
+                s.col_slice(i*set_cols+2, start_rowx=skip_lines)):
                 if cell1.ctype not in (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_BLANK):
                     X.append(cell1.value), Y.append(cell2.value), S.append(cell3.value)
         set = XYDataSet()
