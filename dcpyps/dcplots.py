@@ -73,7 +73,7 @@ def xlog_hist_EXP_fit(ax, tres, X=None, pdf=None, pars=None, shut=True,
             (1 / np.sum(area * np.exp(-tres / tau))))
         
     t = np.logspace(math.log10(tres), math.log10(2 * max(X)), 512)
-    ax.plot(t, np.sqrt(scale * t * pdf(pars, t)), '-b')
+    ax.plot(t, np.sqrt(scale * t * pdf(t)), '-b')
     for ta, ar in zip(tau, area):
         ax.plot(t, np.sqrt(scale * t * (ar / ta) * np.exp(-t / ta)), '--b')
         

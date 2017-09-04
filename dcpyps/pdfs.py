@@ -2,6 +2,7 @@ import math
 import sys
 
 import numpy as np
+from scipy.optimize import bisect
 
 def expPDF(t, tau, area):
     """
@@ -105,6 +106,77 @@ def expPDF_misclassified_printout(tcrit, enf, ens, pf, ps):
         ' long = {0:.5g}\n'.format(ens * 100) +
         'Total # misclassified (out of 100) = {0:.5g}\n\n'
         .format((enf + ens) * 100))
+
+def theta_unsqueeze(theta):
+    theta = np.asarray(theta)
+    tau, area = np.split(theta, [int(math.ceil(len(theta) / 2))])
+    area = np.append(area, 1 - np.sum(area))
+    return tau, area
+
+def calculate_all_tcrits(theta):
+    tau, area = theta_unsqueeze(theta)
+    tcrits = np.empty((3, len(tau)-1))
+    misclassified = np.empty((3, len(tau)-1, 4))
+    for i in range(len(tau)-1):
+        try:
+            tcrit = bisect(expPDF_tcrit_DC, tau[i], tau[i+1], args=(tau, area, i+1))
+            enf, ens, pf, ps = expPDF_misclassified(tcrit, tau, area, i+1)
+        except:
+            print('Bisection with DC criterion failed.\n')
+            tcrit = None
+            enf, ens, pf, ps = None, None, None, None
+        tcrits[0, i] = tcrit
+        misclassified[0, i] = np.array([enf, ens, pf, ps])
+
+        try:
+            tcrit = bisect(expPDF_tcrit_CN, tau[i], tau[i+1], args=(tau, area, i+1))
+            enf, ens, pf, ps = expPDF_misclassified(tcrit, tau, area, i+1)
+        except:
+            print('Bisection with Clapham & Neher criterion failed.\n')
+            tcrit = None
+            enf, ens, pf, ps = None, None, None, None
+        tcrits[1, i] = tcrit
+        misclassified[1, i] = np.array([enf, ens, pf, ps])
+
+        try:
+            tcrit = bisect(expPDF_tcrit_Jackson, tau[i], tau[i+1], args=(tau, area, i+1))
+            enf, ens, pf, ps = expPDF_misclassified(tcrit, tau, area, i+1)
+        except:
+            print('Bisection with Jackson criterion failed.\n')
+            tcrit = None
+            enf, ens, pf, ps = None, None, None, None
+        tcrits[2, i] = tcrit
+        misclassified[2, i] = np.array([enf, ens, pf, ps])
+    return tcrits, misclassified
+
+def printout_all_tcrits(tcrits, misclassified):
+    for i in range(len(tcrits)-1):
+        print('\nCritical time between components {0:d} and {1:d}\n'.
+                format(i+1, i+2) + '\nEqual % misclassified (DC criterion)')
+        tcrit = tcrits[0, i]
+        if tcrit is not None:
+            miscl = misclassified[0, i] 
+            print(expPDF_misclassified_printout(tcrit, miscl[0], miscl[1], miscl[2], miscl[3]))
+
+        print('Equal # misclassified (Clapham & Neher criterion)')
+        tcrit = tcrits[1, i] 
+        if tcrit is not None:
+            miscl = misclassified[1, i] 
+            print(expPDF_misclassified_printout(tcrit, miscl[0], miscl[1], miscl[2], miscl[3]))
+
+        print('Minimum total # misclassified (Jackson et al criterion)')
+        tcrit = tcrits[2, i] 
+        if tcrit is not None:
+            miscl = misclassified[2, i] 
+            print(expPDF_misclassified_printout(tcrit, miscl[0], miscl[1], miscl[2], miscl[3]))
+
+    print('\n\nSUMMARY of tcrit values:\nComponents\t\tDC\t\tC&N\t\tJackson\n')
+    for i in range(len(tcrits)-1):
+        print('{0:d} to {1:d} '.format(i+1, i+2) +
+                '\t\t\t{0:.5g}'.format(tcrits[0, i] * 1000) +
+                '\t\t{0:.5g}'.format(tcrits[1, i] * 1000) +
+                '\t\t{0:.5g}\n'.format(tcrits[2, i] * 1000))
+
 
 def expPDF_tcrit_DC(tcrit, tau, area, comp):
     """
