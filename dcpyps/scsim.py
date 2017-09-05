@@ -2,8 +2,6 @@ import math
 import random
 import numpy as np
 
-from dcpyps.sccalc import scalcslib as scl
-
 def simulate_intervals(mec, tres, state, opamp=5, nintmax=5000):
     """
 

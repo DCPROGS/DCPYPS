@@ -44,4 +44,3 @@ from dcpyps.mechanism import * # this should really be in the namespace
                         # numpy.array
 from dcpyps import version
 from dcpyps import samples
-from dcpyps import sccalc
