@@ -631,11 +631,20 @@ class Mechanism(object):
 
     def theta(self):
 
-        list = []
+        theta = []
         for rate in self.Rates:
             if not rate.fixed and not rate.is_constrained and not rate.mr:
-                list.append(rate.unit_rate())
-        return np.array(list)
+                theta.append(rate.unit_rate())
+        return np.array(theta)
+
+    def get_free_parameter_names(self):
+
+        names = []
+        for rate in self.Rates:
+            if not rate.fixed and not rate.is_constrained and not rate.mr:
+                names.append(rate.name)
+        return names
+
 
     def theta_unsqueeze(self, theta):
 

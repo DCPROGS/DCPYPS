@@ -32,6 +32,99 @@ def CH82():
 
     return  dcpyps.Mechanism(RateList, CycleList, mtitle=mectitle, rtitle=ratetitle) #, fastblk, KBlk)
 
+def AChR_diamond():
+    
+    mectitle = 'diamond'
+    ratetitle = 'from CHH 2003'
+
+    A2RS = dcpyps.State('A', 'A2R*', 60e-12)
+    ARSa  = dcpyps.State('A', 'AR*a', 60e-12)
+    ARSb  = dcpyps.State('A', 'AR*b', 60e-12)
+    A2R  = dcpyps.State('B', 'A2R', 0.0)
+    ARa   = dcpyps.State('B', 'ARa', 0.0)
+    ARb   = dcpyps.State('B', 'ARb', 0.0)
+    R    = dcpyps.State('C', 'R', 0.0)
+
+    RateList = [
+         dcpyps.Rate(50.0, ARa, ARSa, name='beta1a', limits=[1e-2,1e+6]),
+         dcpyps.Rate(6000.0, ARSa, ARa, name='alpha1a', limits=[1e-2,1e+6]),
+         dcpyps.Rate(150.0, ARb, ARSb, name='beta1b', limits=[1e-2,1e+6]),
+         dcpyps.Rate(50000.0, ARSb, ARb, name='alpha1b', limits=[1e-2,1e+6]),
+         dcpyps.Rate(52000.0, A2R, A2RS, name='beta2', limits=[1e-2,1e+6]),
+         dcpyps.Rate(2000.0, A2RS, A2R, name='alpha2', limits=[1e-2,1e+6]),
+         
+         dcpyps.Rate(1500.0, A2R, ARb, name='k(-2a)', limits=[1e-2,1e+6]),
+         dcpyps.Rate(2.0e08, ARb, A2R, name='k(+2a)', eff='c', limits=[1e-2,1e+10]),
+         dcpyps.Rate(10000.0, A2R, ARa, name='k(-2b)', limits=[1e-2,1e+6]),
+         dcpyps.Rate(4.0e08, ARa, A2R, name='k(+2b)', eff='c', limits=[1e-2,1e+10]),
+         
+         dcpyps.Rate(1500.0, ARa, R, name='k(-1a)', limits=[1e-2,1e+6]),
+         dcpyps.Rate(2.0e08, R, ARa, name='k(+1a)', eff='c', limits=[1e-2,1e+10]),
+         dcpyps.Rate(10000.0, ARb, R, name='k(-1b)', limits=[1e-2,1e+6]),
+         dcpyps.Rate(4.0e08, R, ARb, name='k(+1b)', eff='c', limits=[1e-2,1e+10])         
+         ]
+
+    CycleList = [dcpyps.Cycle(['A2R', 'ARa', 'R', 'ARb'])]
+
+    return  dcpyps.Mechanism(RateList, CycleList, mtitle=mectitle, rtitle=ratetitle)
+
+def load_AChR_diamond_independent_binding(rates=None):
+    mec = AChR_diamond()
+    # PREPARE RATE CONSTANTS.
+    if rates is not None:
+        mec.set_rateconstants(rates)
+    mec.Rates[11].is_constrained = True
+    mec.Rates[11].constrain_func = dcpyps.mechanism.constrain_rate_multiple
+    mec.Rates[11].constrain_args = [7, 1]             
+    mec.Rates[13].is_constrained = True
+    mec.Rates[13].constrain_func = dcpyps.mechanism.constrain_rate_multiple
+    mec.Rates[13].constrain_args = [9, 1]
+    mec.Rates[10].is_constrained = True
+    mec.Rates[10].constrain_func = dcpyps.mechanism.constrain_rate_multiple
+    mec.Rates[10].constrain_args = [6, 1]
+    mec.Rates[12].is_constrained = True
+    mec.Rates[12].constrain_func = dcpyps.mechanism.constrain_rate_multiple
+    mec.Rates[12].constrain_args = [8, 1]
+    mec.update_constrains()
+    return mec, mec.get_free_parameter_names()
+
+def load_GlyR_flip_independent_binding(rates=None):
+    # LOAD FLIP MECHANISM USED Burzomato et al 2004
+    mecfn = "./data/demomec.mec"
+    version, meclist, max_mecnum = dcpyps.dcio.mec_get_list(mecfn)
+    mec = dcio.mec_load(mecfn, meclist[2][0])
+    # PREPARE RATE CONSTANTS.
+    if rates is not None:
+        mec.set_rateconstants(rates)
+    # Fixed rates.
+    for i in range(len(mec.Rates)):
+        mec.Rates[i].fixed = False
+    # Constrained rates.
+    mec.Rates[21].is_constrained = True
+    mec.Rates[21].constrain_func = dcpyps.mechanism.constrain_rate_multiple
+    mec.Rates[21].constrain_args = [17, 3]
+    mec.Rates[19].is_constrained = True
+    mec.Rates[19].constrain_func = dcpyps.mechanism.constrain_rate_multiple
+    mec.Rates[19].constrain_args = [17, 2]
+    mec.Rates[16].is_constrained = True
+    mec.Rates[16].constrain_func = dcpyps.mechanism.constrain_rate_multiple
+    mec.Rates[16].constrain_args = [20, 3]
+    mec.Rates[18].is_constrained = True
+    mec.Rates[18].constrain_func = dcpyps.mechanism.constrain_rate_multiple
+    mec.Rates[18].constrain_args = [20, 2]
+    mec.Rates[8].is_constrained = True
+    mec.Rates[8].constrain_func = dcpyps.mechanism.constrain_rate_multiple
+    mec.Rates[8].constrain_args = [12, 1.5]
+    mec.Rates[13].is_constrained = True
+    mec.Rates[13].constrain_func = dcpyps.mechanism.constrain_rate_multiple
+    mec.Rates[13].constrain_args = [9, 2]
+    mec.update_constrains()
+    mec.set_mr(True, 7, 0)
+    mec.set_mr(True, 15, 1)
+    mec.update_constrains()
+    return mec, mec.get_free_parameter_names()
+
+
 def GlyR_flip():
     
     mectitle = '3 site flip'
