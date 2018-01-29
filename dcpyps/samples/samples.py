@@ -92,7 +92,7 @@ def load_GlyR_flip_independent_binding(rates=None):
     # LOAD FLIP MECHANISM USED Burzomato et al 2004
     mecfn = "./data/demomec.mec"
     version, meclist, max_mecnum = dcpyps.dcio.mec_get_list(mecfn)
-    mec = dcio.mec_load(mecfn, meclist[2][0])
+    mec = dcpyps.dcio.mec_load(mecfn, meclist[2][0])
     # PREPARE RATE CONSTANTS.
     if rates is not None:
         mec.set_rateconstants(rates)
