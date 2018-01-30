@@ -756,8 +756,8 @@ class Mechanism(object):
 
     def check_mr(self, cycle):
 
-        fprod = 1
-        bprod = 1
+        fprod = 1.0
+        bprod = 1.0
         states1 = cycle.states[:]
         states2 = cycle.states[:]
         states2.append(states2.pop(0))

@@ -90,9 +90,10 @@ def load_AChR_diamond_independent_binding(rates=None):
 
 def load_GlyR_flip_independent_binding(rates=None):
     # LOAD FLIP MECHANISM USED Burzomato et al 2004
-    mecfn = "./data/demomec.mec"
-    version, meclist, max_mecnum = dcpyps.dcio.mec_get_list(mecfn)
-    mec = dcpyps.dcio.mec_load(mecfn, meclist[2][0])
+    #mecfn = "/mec/demomec.mec"
+    #version, meclist, max_mecnum = dcpyps.dcio.mec_get_list(mecfn)
+    #mec = dcpyps.dcio.mec_load(mecfn, meclist[2][0])
+    mec = GlyR_flip()
     # PREPARE RATE CONSTANTS.
     if rates is not None:
         mec.set_rateconstants(rates)
@@ -119,8 +120,8 @@ def load_GlyR_flip_independent_binding(rates=None):
     mec.Rates[13].constrain_func = dcpyps.mechanism.constrain_rate_multiple
     mec.Rates[13].constrain_args = [9, 2]
     mec.update_constrains()
-    mec.set_mr(True, 7, 0)
-    mec.set_mr(True, 15, 1)
+    mec.set_mr(True, 7, 1)
+    mec.set_mr(True, 15, 0)
     mec.update_constrains()
     return mec, mec.get_free_parameter_names()
 
@@ -142,32 +143,28 @@ def GlyR_flip():
     R    = dcpyps.State('C', 'R', 0.0)
 
     RateList = [
-        dcpyps.Rate(4200.0, AF, AFS, name='beta1', limits=[1e-15,1e+7]),
-        dcpyps.Rate(28000.0, A2F, A2FS, name='beta2', limits=[1e-15,1e+7]),
-        dcpyps.Rate(129000.0, A3F, A3FS, name='beta3', limits=[1e-15,1e+7]),
         dcpyps.Rate(3400.0, AFS, AF, name='alpha1', limits=[1e-15,1e+7]),
+        dcpyps.Rate(4200.0, AF, AFS, name='beta1', limits=[1e-15,1e+7]),
         dcpyps.Rate(2100.0, A2FS, A2F, name='alpha2', limits=[1e-15,1e+7]),
+        dcpyps.Rate(28000.0, A2F, A2FS, name='beta2', limits=[1e-15,1e+7]),
         dcpyps.Rate(7000.0, A3FS, A3F, name='alpha3', limits=[1e-15,1e+7]),
-        
-        dcpyps.Rate(180.0, AR, AF, name='delta1', limits=[1e-15,1e+7]),
-        dcpyps.Rate(6800.0, A2R, A2F, name='delta2', limits=[1e-15,1e+7]),
-        dcpyps.Rate(20900.0, A3R, A3F, name='delta3', limits=[1e-15,1e+7]),
-        dcpyps.Rate(29000.0, AF, AR, name='gamma1', limits=[1e-15,1e+7]),
-        dcpyps.Rate(18000.0, A2F, A2R, name='gamma2', limits=[1e-15,1e+7]),
+        dcpyps.Rate(129000.0, A3F, A3FS, name='beta3', limits=[1e-15,1e+7]),
         dcpyps.Rate(900.0, A3F, A3R, name='gamma3', limits=[1e-15,1e+7]),
-        
-        dcpyps.Rate(300.0, AR, R, name='k(-1)', limits=[1e-15,1e+7]),
-        dcpyps.Rate(2 * 300.0, A2R, AR, name='2k(-2)', limits=[1e-15,1e+7]),
-        dcpyps.Rate(3 * 300.0, A3R, A2R, name='3k(-3)', limits=[1e-15,1e+7]),
-        dcpyps.Rate(3 * 0.59e06, R, AR, name='3k(+1)', eff='c', limits=[1e-15,1e+10]),
-        dcpyps.Rate(2 * 0.59e06, AR, A2R, name='2k(+2)', eff='c', limits=[1e-15,1e+10]), 
-        dcpyps.Rate(0.59e06, A2R, A3R, name='k(+3)', eff='c', limits=[1e-15,1e+10]),
-         
-        dcpyps.Rate(2 * 150e06, AF, A2F, name='2kf(+2)', eff='c', limits=[1e-15,1e+10]),
+        dcpyps.Rate(20900.0, A3R, A3F, name='delta3', limits=[1e-15,1e+7]),
+        dcpyps.Rate(3 * 1200, A3F, A2F, name='3kf(-3)', limits=[1e-15,1e+7]),
         dcpyps.Rate(150e06, A2F, A3F, name='kf(+3)', eff='c', limits=[1e-15,1e+10]),
-        
+        dcpyps.Rate(18000.0, A2F, A2R, name='gamma2', limits=[1e-15,1e+7]),
+        dcpyps.Rate(6800.0, A2R, A2F, name='delta2', limits=[1e-15,1e+7]),
         dcpyps.Rate(2 * 1200, A2F, AF, name='2kf(-2)', limits=[1e-15,1e+7]),
-        dcpyps.Rate(3 * 1200, A3F, A2F, name='3kf(-3)', limits=[1e-15,1e+7])
+        dcpyps.Rate(2 * 150e06, AF, A2F, name='2kf(+2)', eff='c', limits=[1e-15,1e+10]),
+        dcpyps.Rate(29000.0, AF, AR, name='gamma1', limits=[1e-15,1e+7]),
+        dcpyps.Rate(180.0, AR, AF, name='delta1', limits=[1e-15,1e+7]),
+        dcpyps.Rate(3 * 300.0, A3R, A2R, name='3k(-3)', limits=[1e-15,1e+7]),
+        dcpyps.Rate(0.59e06, A2R, A3R, name='k(+3)', eff='c', limits=[1e-15,1e+10]),
+        dcpyps.Rate(2 * 300.0, A2R, AR, name='2k(-2)', limits=[1e-15,1e+7]),
+        dcpyps.Rate(2 * 0.59e06, AR, A2R, name='2k(+2)', eff='c', limits=[1e-15,1e+10]),
+        dcpyps.Rate(300.0, AR, R, name='k(-1)', limits=[1e-15,1e+7]),
+        dcpyps.Rate(3 * 0.59e06, R, AR, name='3k(+1)', eff='c', limits=[1e-15,1e+10])
         ]
 
     CycleList = [dcpyps.Cycle(['A2F', 'AF', 'AR', 'A2R']), 
