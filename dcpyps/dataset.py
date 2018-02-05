@@ -1,7 +1,11 @@
 #! /usr/bin/python
+import os
 import sys
 import math
+import copy
+import xlrd
 import numpy as np
+
 from dcpyps import dcio
 
 class SCRecord(object):
@@ -609,6 +613,54 @@ class Bursts(object):
         return [b.intervals for b in cleaned.bursts]
 
 
+class DataSet(object):
+    """Data set of single channel records."""
+    def __init__(self, receptor='GlyR', species='human', subunits='a1',
+                 construct='WT', agonist='glycine'):
+        self.receptor = receptor
+        self.species = species
+        self.subunits = subunits
+        self.construct = construct
+        self.agonist = agonist
+        
+    def __repr__(self):
+        return ("\nReceptor: {0}\n\tSpecies: {1}".format(self.receptor, self.species) +
+                "\n\t\tSubunits: {0}\n\t\t\tConstruct: {1}".format(self.subunits, self.construct) +
+                "\n\t\t\t\tAgonist: {}".format(self.agonist))
+    
+    def search_available_sets_excel(self, startpath):
+        self.path = os.path.join(startpath, self.receptor, self.species, self.subunits,
+                            self.construct, self.agonist)
+        self.fname = self.path + '/patches.xlsx'
+        self.wb = xlrd.open_workbook(self.fname)
+        sheet_names = self.wb.sheet_names()
+        print('Sheet Names', sheet_names)
+        sets = copy.copy(sheet_names)
+        sets.remove('all')
+        print("Available sets: ", sets)
+        #self.out_path = self.path.replace('DATASETS', 'RESULTS')
+        
+    def load_dataset_excel(self, myset):
+        s = self.wb.sheet_by_name(myset)
+        self.all_bursts = []
+        self.recs = []
+        self.conc, self.tres, self.tcrit = [], [], []
+        for i in range(int(s.nrows)):
+            print("processing row ", i)
+            fname = self.path + "\\" + s.cell(i, 0).value
+            print(fname)
+            c = s.cell(i, 1).value * 1e-6
+            self.conc.append(c)
+            tr = s.cell(i, 2).value * 1e-6
+            self.tres.append(tr)
+            tc = s.cell(i, 3).value * 1e-3
+            self.tcrit.append(tc)
+            rec = SCRecord([fname], c, tr, tc)
+            self.recs.append(rec)
+            bursts = rec.bursts.intervals()
+            self.all_bursts.append(bursts)
+            
+
 class PooledRecords(object):
     """
     A pool of single channel records of type SCRecord.
@@ -661,5 +713,13 @@ def all_sh_lists(recs, min_op):
     return all
 
 
-
+def list_files(startpath, do_exclude_files=True):
+    for root, dirs, files in os.walk(startpath):
+        level = root.replace(startpath, '').count(os.sep)
+        indent = ' ' * 4 * (level)
+        print('{}{}/'.format(indent, os.path.basename(root)))
+        subindent = ' ' * 4 * (level + 1)
+        if not do_exclude_files:
+            for f in files:
+                print('{}{}'.format(subindent, f))
 
