@@ -723,3 +723,20 @@ def list_files(startpath, do_exclude_files=True):
             for f in files:
                 print('{}{}'.format(subindent, f))
 
+def mean_open_shut_correlation(rec, time_range, scale = None):
+    time_range = np.array(time_range) / 1000
+    opint = np.array(rec.opint)
+    shint = np.array(rec.shint)
+    mean_shut = []
+    mean_open = []
+    error = []
+    for i in range(len(time_range)-1):
+        mean_shut.append(np.mean([time_range[i], time_range[i+1]]))
+        conditioned_open = opint[np.logical_and(shint>time_range[i], shint<time_range[i+1])]
+        mean_open.append(np.mean(conditioned_open))
+        error.append(np.std(conditioned_open)/np.sqrt(len(conditioned_open)))
+    if scale:
+        mean_shut = np.array(mean_shut) * scale
+        mean_open = np.array(mean_open) * scale
+        error = np.array(error) * scale
+    return mean_shut, mean_open, error
