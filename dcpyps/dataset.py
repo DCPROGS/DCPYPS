@@ -724,7 +724,7 @@ def list_files(startpath, do_exclude_files=True):
                 print('{}{}'.format(subindent, f))
 
 def mean_open_shut_correlation(rec, time_range, scale = None):
-    time_range = np.array(time_range) / 1000
+    time_range = np.array(time_range)
     opint = np.array(rec.opint)
     shint = np.array(rec.shint)
     mean_shut = []
