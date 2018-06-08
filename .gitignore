@@ -5,6 +5,7 @@ syntax: glob
 *.aux
 *.log
 *.bak
+*.bat
 *.old
 *.dvi
 *.dmg
